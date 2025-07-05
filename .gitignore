@@ -1,0 +1,211 @@
+# ===================================
+# ZineShop Full-Stack Project
+# ===================================
+
+# ===================================
+# SECURITY - Environment & Secrets
+# ===================================
+# Environment files (CRITICAL - Contains DB credentials, API keys, JWT secrets)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+*.env
+server/.env
+client/.env
+
+# API Keys and Secrets
+config/secrets.json
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ===================================
+# Dependencies
+# ===================================
+# Node.js dependencies
+node_modules/
+*/node_modules/
+client/node_modules/
+server/node_modules/
+
+# Package manager files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ===================================
+# Build Output & Compiled Files
+# ===================================
+# Client build output
+client/dist/
+client/build/
+client/dist-ssr/
+
+# Server compiled TypeScript
+server/dist/
+server/build/
+*.tsbuildinfo
+
+# ===================================
+# Development & IDE Files
+# ===================================
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Other editors
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===================================
+# Logs & Runtime Files
+# ===================================
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# ===================================
+# Temporary & Cache Files
+# ===================================
+# Temporary folders
+tmp/
+temp/
+.tmp/
+.cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===================================
+# Database & Data Files
+# ===================================
+# Local database files
+*.sqlite
+*.sqlite3
+*.db
+data/
+backups/
+
+# ===================================
+# Deployment & Production
+# ===================================
+# Production builds
+build/
+dist/
+
+# Docker
+.dockerignore
+Dockerfile.prod
+
+# ===================================
+# Testing
+# ===================================
+# Test coverage
+coverage/
+.nyc_output/
+
+# ===================================
+# Miscellaneous
+# ===================================
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+.tmp
+.temp
+
+# ===================================
+# Project Specific Exclusions
+# ===================================
+# Remove empty directories created during reorganization
+src/
+
+# Development scripts that shouldn't be in production
+dev.bat
+dev.ps1
+test-api.js

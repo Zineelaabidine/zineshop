@@ -1,0 +1,55 @@
+{
+  "name": "zineshop-fullstack",
+  "version": "1.0.0",
+  "description": "ZineShop - Full-stack e-commerce application with React frontend and Express.js backend",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npm run build:production && npm run server:dev",
+    "start": "npm run build:production && npm run server:start",
+    "build": "npm run client:build && npm run server:build",
+    "build:production": "npm run client:build",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "client:preview": "cd client && npm run preview",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "server:start": "cd server && npm start",
+    "install:all": "npm install && npm run install:client && npm run install:server",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "clean": "npm run clean:client && npm run clean:server",
+    "clean:client": "cd client && npm run build && rm -rf dist",
+    "clean:server": "cd server && npm run clean",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "cd client && npm test",
+    "test:server": "cd server && npm test",
+    "lint": "npm run lint:client && npm run lint:server",
+    "lint:client": "cd client && npm run lint",
+    "lint:server": "cd server && npm run type-check"
+  },
+  "keywords": [
+    "ecommerce",
+    "react",
+    "typescript",
+    "express",
+    "nodejs",
+    "postgresql",
+    "supabase",
+    "tailwindcss",
+    "vite"
+  ],
+  "author": "Zine El Aabidine Hamdoun",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/zineshop.git"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}
