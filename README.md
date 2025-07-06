@@ -156,10 +156,23 @@ CLIENT_URL=http://localhost:5173
 - ✅ User authentication (signup/signin)
 - ✅ JWT-based session management
 - ✅ Product catalog with categories
+- ✅ **Admin Panel** for product management
 - ✅ Responsive design (mobile-first)
 - ✅ TypeScript for type safety
 - ✅ Database integration (PostgreSQL/Supabase)
 - ✅ Modern development workflow
+
+### 🛠 Admin Panel Features
+
+- **Dashboard Overview**: Real-time statistics and metrics
+- **Product Management**: Add, edit, and delete products
+- **Inventory Tracking**: Stock levels and low stock alerts
+- **Search & Filtering**: Advanced product search and category filters
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Modal Forms**: Clean, user-friendly product forms
+- **Status Management**: Active, inactive, and out-of-stock status tracking
+
+**Access the Admin Panel**: Navigate to `/admin`
 
 ## 🤝 Contributing
 

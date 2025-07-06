@@ -140,7 +140,7 @@ backups/
 # ===================================
 # Production builds
 build/
-dist/
+# Note: Specific dist folders are already excluded above (client/dist/, server/dist/)
 
 # Docker
 .dockerignore
@@ -185,7 +185,6 @@ coverage/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -199,13 +198,4 @@ public
 .tmp
 .temp
 
-# ===================================
-# Project Specific Exclusions
-# ===================================
-# Remove empty directories created during reorganization
-src/
 
-# Development scripts that shouldn't be in production
-dev.bat
-dev.ps1
-test-api.js
