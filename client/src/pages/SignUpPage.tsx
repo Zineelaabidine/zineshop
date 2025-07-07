@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const SignUpPage: React.FC = () => {
@@ -101,18 +101,11 @@ const SignUpPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full space-y-8 ">
         {/* Header */}
-        <div className="text-center pt-24">
-          <Link 
-            to="/" 
-            className="inline-flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200 mb-8"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Home</span>
-          </Link>
+        <div className="text-center">
           
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 mt-20">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
               <span className="text-white font-bold text-2xl">Z</span>
             </div>

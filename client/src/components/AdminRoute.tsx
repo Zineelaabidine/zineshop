@@ -24,7 +24,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
   // If user is not authenticated, redirect to sign in page
   if (!isAuthenticated || !user) {
-    return <Navigate to="/signin" replace />;
+    return <Navigate to="/not-found" replace />;
   }
 
   // If user is authenticated but not an admin, show 404 page

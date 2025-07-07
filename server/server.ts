@@ -21,6 +21,7 @@ import { errorHandler, notFound } from './middleware/errorHandler';
 
 // Import routes
 import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
 
 // Create Express app
 const app: Application = express();
@@ -77,6 +78,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../client/dist')));

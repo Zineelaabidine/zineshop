@@ -21,7 +21,7 @@ function App() {
 
   const HomePage = () => (
     <> 
-      <div className="pt-17">
+      <div className="pt-19">
         <Hero />
       </div>
       <ProductShowcase />
