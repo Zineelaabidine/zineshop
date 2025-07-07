@@ -13,6 +13,9 @@ dotenv.config();
 // Import database connection
 import { testConnection, closePool } from './config/database';
 
+// Import admin initialization
+import { initializeAdminUser } from './utils/initAdmin';
+
 // Import middleware
 import { errorHandler, notFound } from './middleware/errorHandler';
 
@@ -89,58 +92,79 @@ app.use(notFound);
 // Global error handler
 app.use(errorHandler);
 
-// Start server
-const PORT: number = parseInt(process.env.PORT || '5000', 10);
+// Setup graceful shutdown handlers
+const setupGracefulShutdown = (server: Server): void => {
+  // Graceful shutdown function
+  const gracefulShutdown = (signal: string): void => {
+    console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
 
-const server: Server = app.listen(PORT, () => {
-  console.log(`
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+
+      // Close database connections
+      closePool().then(() => {
+        console.log('✅ Database connections closed');
+        process.exit(0);
+      }).catch((error: Error) => {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+      });
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+      console.error('❌ Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Handle shutdown signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error: Error) => {
+    console.error('❌ Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
+  });
+
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('unhandledRejection');
+  });
+};
+
+// Initialize server
+const startServer = async (): Promise<void> => {
+  try {
+    // Initialize admin user after database connection is established
+    await initializeAdminUser();
+
+    // Start HTTP server
+    const PORT: number = parseInt(process.env.PORT || '5000', 10);
+
+    const server: Server = app.listen(PORT, () => {
+      console.log(`
 🚀 ZineShop API Server Started
 📍 Environment: ${process.env.NODE_ENV || 'development'}
 🌐 Server running on port ${PORT}
 🔗 API URL: http://localhost:${PORT}
 📊 Health check: http://localhost:${PORT}/health
 🔐 Auth endpoints: http://localhost:${PORT}/api/auth
-  `);
-});
-
-// Graceful shutdown function
-const gracefulShutdown = (signal: string): void => {
-  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-  
-  server.close(() => {
-    console.log('✅ HTTP server closed');
-    
-    // Close database connections
-    closePool().then(() => {
-      console.log('✅ Database connections closed');
-      process.exit(0);
-    }).catch((error: Error) => {
-      console.error('❌ Error during shutdown:', error);
-      process.exit(1);
+      `);
     });
-  });
-  
-  // Force close after 10 seconds
-  setTimeout(() => {
-    console.error('❌ Could not close connections in time, forcefully shutting down');
+
+    // Set up graceful shutdown handlers
+    setupGracefulShutdown(server);
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', (error as Error).message);
     process.exit(1);
-  }, 10000);
+  }
 };
 
-// Handle shutdown signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error: Error) => {
-  console.error('❌ Uncaught Exception:', error);
-  gracefulShutdown('uncaughtException');
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown('unhandledRejection');
-});
+// Start the server
+startServer();
 
 export default app;
