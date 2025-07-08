@@ -206,4 +206,36 @@ router.get('/featured', asyncHandler(async (req: Request, res: Response<Featured
   }
 }));
 
+// @route   GET /api/products/categories
+// @desc    Get all categories (public endpoint)
+// @access  Public
+router.get('/categories', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const result = await query(
+      'SELECT id, name, created_at FROM categories ORDER BY name ASC'
+    );
+
+    const categories = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      created_at: row.created_at
+    }));
+
+    res.json({
+      success: true,
+      message: 'Categories retrieved successfully',
+      data: {
+        categories
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching categories'
+    });
+  }
+}));
+
 export default router;

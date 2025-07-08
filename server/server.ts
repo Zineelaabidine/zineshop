@@ -46,6 +46,7 @@ app.use(helmet({
         "'self'",
         "data:",
         "https://images.unsplash.com",
+        "https://images.pexels.com",
         "https://*.supabase.co",
         "https://hefxcscvefwvowrnobzr.supabase.co"
       ],

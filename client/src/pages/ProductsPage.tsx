@@ -1,137 +1,171 @@
-import React, { useState } from 'react';
-import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft, Package, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
+  description: string | null;
   price: number;
-  originalPrice?: number;
-  rating: number;
-  image: string;
-  badge?: string;
-  category: string;
-  description: string;
+  image_url: string | null;
+  stock: number;
+  category_name: string | null;
+  created_at: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface ProductsResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    products: Product[];
+    totalCount: number;
+  };
+}
+
+interface CategoriesResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    categories: Category[];
+  };
 }
 
 const ProductsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Neural Interface Headset",
-      price: 299,
-      originalPrice: 399,
-      rating: 4.8,
-      image: "https://images.pexels.com/photos/3913025/pexels-photo-3913025.jpeg?auto=compress&cs=tinysrgb&w=400",
-      badge: "New",
-      category: "electronics",
-      description: "Advanced neural interface technology for seamless brain-computer interaction"
-    },
-    {
-      id: 2,
-      name: "Quantum Smartphone",
-      price: 899,
-      rating: 4.9,
-      image: "https://images.pexels.com/photos/699122/pexels-photo-699122.jpeg?auto=compress&cs=tinysrgb&w=400",
-      badge: "Best Seller",
-      category: "electronics",
-      description: "Revolutionary quantum-powered smartphone with unlimited processing capabilities"
-    },
-    {
-      id: 3,
-      name: "Holographic Display",
-      price: 1299,
-      originalPrice: 1599,
-      rating: 4.7,
-      image: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=400",
-      badge: "Limited",
-      category: "electronics",
-      description: "3D holographic display technology for immersive visual experiences"
-    },
-    {
-      id: 4,
-      name: "Smart Fitness Tracker",
-      price: 199,
-      rating: 4.6,
-      image: "https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "wearables",
-      description: "Advanced health monitoring with AI-powered insights and recommendations"
-    },
-    {
-      id: 5,
-      name: "Wireless Gaming Headset",
-      price: 249,
-      originalPrice: 299,
-      rating: 4.8,
-      image: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "gaming",
-      description: "Professional-grade wireless gaming headset with 3D spatial audio"
-    },
-    {
-      id: 6,
-      name: "Smart Home Hub",
-      price: 149,
-      rating: 4.5,
-      image: "https://images.pexels.com/photos/4219654/pexels-photo-4219654.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "smart-home",
-      description: "Central control hub for all your smart home devices and automation"
-    },
-    {
-      id: 7,
-      name: "VR Gaming Headset",
-      price: 599,
-      originalPrice: 699,
-      rating: 4.9,
-      image: "https://images.pexels.com/photos/8721342/pexels-photo-8721342.jpeg?auto=compress&cs=tinysrgb&w=400",
-      badge: "Popular",
-      category: "gaming",
-      description: "Next-generation VR headset with ultra-high resolution and haptic feedback"
-    },
-    {
-      id: 8,
-      name: "Smart Watch Pro",
-      price: 399,
-      rating: 4.7,
-      image: "https://images.pexels.com/photos/437037/pexels-photo-437037.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "wearables",
-      description: "Premium smartwatch with advanced health monitoring and GPS tracking"
-    },
-    {
-      id: 9,
-      name: "Wireless Earbuds",
-      price: 179,
-      originalPrice: 229,
-      rating: 4.6,
-      image: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400",
-      category: "audio",
-      description: "Premium wireless earbuds with active noise cancellation and long battery life"
+  // API state
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Fetch products from API
+  const fetchProducts = async (category: string = 'all', search: string = '') => {
+    try {
+      setIsLoadingProducts(true);
+      setError(null);
+
+      const params = new URLSearchParams();
+      if (category !== 'all') {
+        params.append('category', category);
+      }
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      params.append('limit', '50'); // Get more products for the products page
+
+      const response = await fetch(`/api/products?${params.toString()}`);
+      const data: ProductsResponse = await response.json();
+
+      if (data.success && data.data) {
+        setProducts(data.data.products);
+        setTotalCount(data.data.totalCount);
+      } else {
+        setError(data.message || 'Failed to fetch products');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Network error while fetching products');
+    } finally {
+      setIsLoadingProducts(false);
     }
+  };
+
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true);
+
+      const response = await fetch('/api/products/categories');
+      const data: CategoriesResponse = await response.json();
+
+      if (data.success && data.data) {
+        setCategories(data.data.categories);
+      } else {
+        console.error('Failed to fetch categories:', data.message);
+        // Don't set error for categories as it's not critical
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Don't set error for categories as it's not critical
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  // Refetch products when category or search changes
+  useEffect(() => {
+    fetchProducts(selectedCategory, searchQuery);
+  }, [selectedCategory, searchQuery]);
+
+  // Create categories list with "All Products" option
+  const allCategories = [
+    { id: 'all', name: 'All Products', created_at: '' },
+    ...categories
   ];
 
-  const categories = [
-    { id: 'all', name: 'All Products' },
-    { id: 'electronics', name: 'Electronics' },
-    { id: 'wearables', name: 'Wearables' },
-    { id: 'gaming', name: 'Gaming' },
-    { id: 'smart-home', name: 'Smart Home' },
-    { id: 'audio', name: 'Audio' }
-  ];
+  // Loading state
+  if (isLoadingProducts && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-900 pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-blue-400 mx-auto mb-4" />
+              <p className="text-gray-300 text-lg">Loading products...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(product => product.category === selectedCategory);
+  // Error state
+  if (error && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-900 pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <p className="text-red-400 text-lg mb-4">{error}</p>
+              <button
+                onClick={() => fetchProducts(selectedCategory, searchQuery)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
           <div className="flex items-center space-x-4">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -144,29 +178,45 @@ const ProductsPage: React.FC = () => {
               </span>
             </h1>
           </div>
-          
-          {/* View Mode Toggle */}
-          <div className="flex items-center space-x-2 bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-colors duration-200 ${
-                viewMode === 'grid' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Grid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-colors duration-200 ${
-                viewMode === 'list' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
+
+          <div className="flex items-center space-x-4">
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {isLoadingProducts && (
+                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+              )}
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center space-x-2 bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md transition-colors duration-200 ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md transition-colors duration-200 ${
+                  viewMode === 'list'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -175,9 +225,12 @@ const ProductsPage: React.FC = () => {
           <div className="flex items-center space-x-2 mb-4">
             <Filter className="w-5 h-5 text-gray-400" />
             <span className="text-gray-300 font-medium">Filter by Category:</span>
+            {isLoadingCategories && (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
@@ -196,95 +249,176 @@ const ProductsPage: React.FC = () => {
         {/* Products Count */}
         <div className="mb-6">
           <p className="text-gray-400">
-            Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+            Showing {products.length} of {totalCount} product{totalCount !== 1 ? 's' : ''}
+            {selectedCategory !== 'all' && (
+              <span className="ml-2">
+                in <span className="text-blue-400">{allCategories.find(c => c.id === selectedCategory)?.name}</span>
+              </span>
+            )}
+            {searchQuery && (
+              <span className="ml-2">
+                for "<span className="text-blue-400">{searchQuery}</span>"
+              </span>
+            )}
           </p>
         </div>
 
+        {/* No Products State */}
+        {products.length === 0 && !isLoadingProducts && (
+          <div className="text-center py-20">
+            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">No products found</h3>
+            <p className="text-gray-400 mb-6">
+              {searchQuery || selectedCategory !== 'all'
+                ? 'Try adjusting your search or filters'
+                : 'No products are currently available'}
+            </p>
+            {(searchQuery || selectedCategory !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors duration-200"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Products Grid/List */}
-        <div className={`${
-          viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' 
-            : 'space-y-6'
-        }`}>
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className={`group relative bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 ${
-                viewMode === 'list' ? 'flex' : ''
-              }`}
-            >
-              {/* Badge */}
-              {product.badge && (
-                <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {product.badge}
-                </div>
-              )}
-
-              {/* Product Image */}
-              <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}`}>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className={`object-cover transition-transform duration-300 group-hover:scale-110 ${
-                    viewMode === 'list' ? 'w-full h-full' : 'w-full h-64'
-                  }`}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {/* Quick Actions */}
-                <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <button className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200">
-                    <Eye className="w-4 h-4 text-gray-300" />
-                  </button>
-                  <button className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200">
-                    <ShoppingCart className="w-4 h-4 text-gray-300" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Product Info */}
-              <div className="p-6 flex-1">
-                <h3 className="text-xl font-semibold text-gray-100 mb-2 group-hover:text-blue-400 transition-colors duration-200">
-                  {product.name}
-                </h3>
-                
-                {viewMode === 'list' && (
-                  <p className="text-gray-400 mb-3 text-sm">{product.description}</p>
+        {products.length > 0 && (
+          <div className={`${
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'
+              : 'space-y-6'
+          }`}>
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className={`group relative bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 ${
+                  viewMode === 'list' ? 'flex' : ''
+                }`}
+              >
+                {/* Badge for new products (created within last 7 days) */}
+                {new Date(product.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
+                  <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    New
+                  </div>
                 )}
-                
-                {/* Rating */}
-                <div className="flex items-center space-x-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < Math.floor(product.rating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-600'
+
+                {/* Low stock badge */}
+                {product.stock <= 5 && product.stock > 0 && (
+                  <div className="absolute top-4 right-4 z-10 bg-gradient-to-r from-orange-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    Low Stock
+                  </div>
+                )}
+
+                {/* Product Image */}
+                <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}`}>
+                  {product.image_url ? (
+                    <div className="relative">
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className={`object-cover transition-transform duration-300 group-hover:scale-110 ${
+                          viewMode === 'list' ? 'w-full h-full' : 'w-full h-64'
+                        }`}
+                        onError={(e) => {
+                          // Hide broken image and show fallback
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div
+                        className={`hidden items-center justify-center bg-gray-700 ${
+                          viewMode === 'list' ? 'w-full h-full' : 'w-full h-64'
+                        }`}
+                      >
+                        <Package className="w-12 h-12 text-gray-400" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex items-center justify-center bg-gray-700 ${
+                        viewMode === 'list' ? 'w-full h-full' : 'w-full h-64'
                       }`}
-                    />
-                  ))}
-                  <span className="text-sm text-gray-400 ml-1">({product.rating})</span>
+                    >
+                      <Package className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                  {/* Quick Actions */}
+                  <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200">
+                      <Eye className="w-4 h-4 text-gray-300" />
+                    </button>
+                    <button
+                      className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200"
+                      disabled={product.stock === 0}
+                    >
+                      <ShoppingCart className={`w-4 h-4 ${product.stock === 0 ? 'text-gray-500' : 'text-gray-300'}`} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Price */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-bold text-gray-100">${product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-lg text-gray-500 line-through">
-                        ${product.originalPrice}
+                {/* Product Info */}
+                <div className="p-6 flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-xl font-semibold text-gray-100 group-hover:text-blue-400 transition-colors duration-200 flex-1">
+                      {product.name}
+                    </h3>
+                    {product.category_name && (
+                      <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full ml-2">
+                        {product.category_name}
                       </span>
                     )}
                   </div>
-                  <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 transform hover:-translate-y-0.5">
-                    Add to Cart
-                  </button>
+
+                  {viewMode === 'list' && product.description && (
+                    <p className="text-gray-400 mb-3 text-sm">{product.description}</p>
+                  )}
+
+                  {/* Stock Status */}
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className={`w-2 h-2 rounded-full ${
+                      product.stock > 10 ? 'bg-green-400' :
+                      product.stock > 0 ? 'bg-yellow-400' : 'bg-red-400'
+                    }`}></div>
+                    <span className={`text-sm ${
+                      product.stock > 10 ? 'text-green-400' :
+                      product.stock > 0 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {product.stock > 10 ? 'In Stock' :
+                       product.stock > 0 ? `Only ${product.stock} left` : 'Out of Stock'}
+                    </span>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold text-gray-100">${product.price.toFixed(2)}</span>
+                    </div>
+                    <button
+                      className={`px-4 py-2 rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 ${
+                        product.stock > 0
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:shadow-blue-500/25'
+                          : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      }`}
+                      disabled={product.stock === 0}
+                    >
+                      {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
