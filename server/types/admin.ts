@@ -67,6 +67,40 @@ export interface AdminDeleteProductResponse {
   };
 }
 
+export interface CreateProductRequest {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category_id: string;
+  image_url?: string;
+}
+
+export interface UpdateProductRequest {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category_id: string;
+  image_url?: string;
+}
+
+export interface AdminCreateProductResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    product: ProductWithCategory;
+  };
+}
+
+export interface AdminUpdateProductResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    product: ProductWithCategory;
+  };
+}
+
 // Request query interfaces for filtering and pagination
 export interface ProductsQueryParams {
   search?: string;

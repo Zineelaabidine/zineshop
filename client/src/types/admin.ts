@@ -63,6 +63,40 @@ export interface AdminDeleteProductResponse {
   };
 }
 
+export interface CreateProductRequest {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category_id: string;
+  image_url?: string;
+}
+
+export interface UpdateProductRequest {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category_id: string;
+  image_url?: string;
+}
+
+export interface AdminCreateProductResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    product: Product;
+  };
+}
+
+export interface AdminUpdateProductResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    product: Product;
+  };
+}
+
 // Product status enum
 export enum ProductStatus {
   ACTIVE = 'active',

@@ -7,6 +7,10 @@ import {
   AdminCategoriesResponse,
   AdminStatsResponse,
   AdminDeleteProductResponse,
+  AdminCreateProductResponse,
+  AdminUpdateProductResponse,
+  CreateProductRequest,
+  UpdateProductRequest,
   ProductsQueryParams,
   ProductWithCategory,
   Category,
@@ -236,6 +240,305 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response<AdminStatsR
     res.status(500).json({
       success: false,
       message: 'Failed to fetch statistics'
+    });
+  }
+}));
+
+// @route   POST /api/admin/products
+// @desc    Create a new product
+// @access  Private (Admin only)
+router.post('/products', asyncHandler(async (req: Request, res: Response<AdminCreateProductResponse>) => {
+  try {
+    const { name, description, price, stock, category_id, image_url }: CreateProductRequest = req.body;
+
+    // Validation
+    const errors: string[] = [];
+
+    // Validate required fields
+    if (!name || typeof name !== 'string') {
+      errors.push('Product name is required and must be a string');
+    } else if (name.trim().length < 2 || name.trim().length > 100) {
+      errors.push('Product name must be between 2 and 100 characters');
+    }
+
+    if (!category_id || typeof category_id !== 'string') {
+      errors.push('Category is required');
+    } else {
+      // Validate category exists
+      const categoryExists = await query('SELECT id FROM categories WHERE id = $1', [category_id]);
+      if (categoryExists.rows.length === 0) {
+        errors.push('Selected category does not exist');
+      }
+    }
+
+    if (price === undefined || price === null || typeof price !== 'number') {
+      errors.push('Price is required and must be a number');
+    } else if (price < 0) {
+      errors.push('Price must be a positive number');
+    } else if (!/^\d+(\.\d{1,2})?$/.test(price.toString())) {
+      errors.push('Price must have at most 2 decimal places');
+    }
+
+    if (stock === undefined || stock === null || typeof stock !== 'number') {
+      errors.push('Stock quantity is required and must be a number');
+    } else if (!Number.isInteger(stock) || stock < 0) {
+      errors.push('Stock quantity must be a non-negative integer');
+    }
+
+    // Validate optional fields
+    if (description && (typeof description !== 'string' || description.length > 500)) {
+      errors.push('Description must be a string with maximum 500 characters');
+    }
+
+    if (image_url && typeof image_url !== 'string') {
+      errors.push('Image URL must be a string');
+    }
+
+    if (errors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: `Validation errors: ${errors.join(', ')}`
+      });
+      return;
+    }
+
+    // Check for duplicate product name
+    const duplicateCheck = await query(
+      'SELECT id FROM products WHERE LOWER(name) = LOWER($1)',
+      [name.trim()]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      res.status(409).json({
+        success: false,
+        message: 'A product with this name already exists'
+      });
+      return;
+    }
+
+    // Create the product
+    const createResult = await query(
+      `INSERT INTO products (name, description, price, stock, category_id, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, description, price, stock, category_id, image_url, created_at, updated_at`,
+      [
+        name.trim(),
+        description?.trim() || null,
+        price,
+        stock,
+        category_id,
+        image_url?.trim() || null
+      ]
+    );
+
+    if (createResult.rows.length === 0) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create product'
+      });
+      return;
+    }
+
+    // Get the created product with category information
+    const productWithCategory = await query(
+      `SELECT
+        p.id, p.name, p.description, p.price, p.stock, p.category_id, p.image_url,
+        p.created_at, p.updated_at, c.name as category_name
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.id = $1`,
+      [createResult.rows[0].id]
+    );
+
+    const newProduct: ProductWithCategory = {
+      id: productWithCategory.rows[0].id,
+      name: productWithCategory.rows[0].name,
+      description: productWithCategory.rows[0].description,
+      price: parseFloat(productWithCategory.rows[0].price),
+      image_url: productWithCategory.rows[0].image_url,
+      stock: parseInt(productWithCategory.rows[0].stock),
+      category_id: productWithCategory.rows[0].category_id,
+      created_at: productWithCategory.rows[0].created_at,
+      updated_at: productWithCategory.rows[0].updated_at,
+      category_name: productWithCategory.rows[0].category_name
+    };
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: {
+        product: newProduct
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating product'
+    });
+  }
+}));
+
+// @route   PUT /api/admin/products/:id
+// @desc    Update a product by ID
+// @access  Private (Admin only)
+router.put('/products/:id', asyncHandler(async (req: Request, res: Response<AdminUpdateProductResponse>) => {
+  try {
+    const productId = req.params.id;
+    const { name, description, price, stock, category_id, image_url }: UpdateProductRequest = req.body;
+
+    // Validate product ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(productId)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+      return;
+    }
+
+    // Check if product exists
+    const existingProductResult = await query(
+      'SELECT id, name FROM products WHERE id = $1',
+      [productId]
+    );
+
+    if (existingProductResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+      return;
+    }
+
+    // Validation
+    const errors: string[] = [];
+
+    // Validate required fields
+    if (!name || typeof name !== 'string') {
+      errors.push('Product name is required and must be a string');
+    } else if (name.trim().length < 2 || name.trim().length > 100) {
+      errors.push('Product name must be between 2 and 100 characters');
+    }
+
+    if (!category_id || typeof category_id !== 'string') {
+      errors.push('Category is required');
+    } else {
+      // Validate category exists
+      const categoryExists = await query('SELECT id FROM categories WHERE id = $1', [category_id]);
+      if (categoryExists.rows.length === 0) {
+        errors.push('Selected category does not exist');
+      }
+    }
+
+    if (price === undefined || price === null || typeof price !== 'number') {
+      errors.push('Price is required and must be a number');
+    } else if (price < 0) {
+      errors.push('Price must be a positive number');
+    } else if (!/^\d+(\.\d{1,2})?$/.test(price.toString())) {
+      errors.push('Price must have at most 2 decimal places');
+    }
+
+    if (stock === undefined || stock === null || typeof stock !== 'number') {
+      errors.push('Stock quantity is required and must be a number');
+    } else if (!Number.isInteger(stock) || stock < 0) {
+      errors.push('Stock quantity must be a non-negative integer');
+    }
+
+    // Validate optional fields
+    if (description && (typeof description !== 'string' || description.length > 500)) {
+      errors.push('Description must be a string with maximum 500 characters');
+    }
+
+    if (image_url && typeof image_url !== 'string') {
+      errors.push('Image URL must be a string');
+    }
+
+    if (errors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: `Validation errors: ${errors.join(', ')}`
+      });
+      return;
+    }
+
+    // Check for duplicate product name (excluding current product)
+    const duplicateCheck = await query(
+      'SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND id != $2',
+      [name.trim(), productId]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      res.status(409).json({
+        success: false,
+        message: 'A product with this name already exists'
+      });
+      return;
+    }
+
+    // Update the product
+    const updateResult = await query(
+      `UPDATE products
+       SET name = $1, description = $2, price = $3, stock = $4, category_id = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING id, name, description, price, stock, category_id, image_url, created_at, updated_at`,
+      [
+        name.trim(),
+        description?.trim() || null,
+        price,
+        stock,
+        category_id,
+        image_url?.trim() || null,
+        productId
+      ]
+    );
+
+    if (updateResult.rows.length === 0) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update product'
+      });
+      return;
+    }
+
+    // Get the updated product with category information
+    const productWithCategory = await query(
+      `SELECT
+        p.id, p.name, p.description, p.price, p.stock, p.category_id, p.image_url,
+        p.created_at, p.updated_at, c.name as category_name
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.id = $1`,
+      [productId]
+    );
+
+    const updatedProduct: ProductWithCategory = {
+      id: productWithCategory.rows[0].id,
+      name: productWithCategory.rows[0].name,
+      description: productWithCategory.rows[0].description,
+      price: parseFloat(productWithCategory.rows[0].price),
+      image_url: productWithCategory.rows[0].image_url,
+      stock: parseInt(productWithCategory.rows[0].stock),
+      category_id: productWithCategory.rows[0].category_id,
+      created_at: productWithCategory.rows[0].created_at,
+      updated_at: productWithCategory.rows[0].updated_at,
+      category_name: productWithCategory.rows[0].category_name
+    };
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: {
+        product: updatedProduct
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating product'
     });
   }
 }));

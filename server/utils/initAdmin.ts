@@ -1,11 +1,11 @@
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 
-// Admin user configuration
+// Admin user configuration from environment variables
 const ADMIN_CONFIG = {
-  email: 'admin@zineshop.com',
-  password: 'AdminTest123!',
-  fullName: 'Admin Test User',
+  email: process.env.ADMIN_EMAIL || 'admin@zineshop.com',
+  password: process.env.ADMIN_PASSWORD || 'AdminTest123!',
+  fullName: process.env.ADMIN_FULL_NAME || 'Admin User',
   isAdmin: true
 };
 
@@ -42,7 +42,7 @@ const validateFullName = (fullName: string): boolean => {
  */
 export const initializeAdminUser = async (): Promise<void> => {
   try {
-    console.log('🔧 Initializing admin user...');
+
 
     // Validate admin configuration
     if (!validateEmail(ADMIN_CONFIG.email)) {
@@ -66,9 +66,7 @@ export const initializeAdminUser = async (): Promise<void> => {
     if (existingUserResult.rows.length > 0) {
       const existingUser = existingUserResult.rows[0];
       
-      if (existingUser.is_admin) {
-        console.log('✅ Admin user already exists and has admin privileges');
-      } else {
+      if (!existingUser.is_admin) {
         console.log('⚠️  User with admin email exists but is not an admin');
         console.log('   Manual intervention required to grant admin privileges');
       }
@@ -93,15 +91,7 @@ export const initializeAdminUser = async (): Promise<void> => {
     );
 
     if (createUserResult.rows.length > 0) {
-      const newAdmin = createUserResult.rows[0];
-      console.log('🎉 Admin user created successfully!');
-      console.log(`   📧 Email: ${newAdmin.email}`);
-      console.log(`   👤 Name: ${newAdmin.full_name}`);
-      console.log(`   🔑 Password: ${ADMIN_CONFIG.password}`);
-      console.log(`   🛡️  Admin: ${newAdmin.is_admin}`);
-      console.log(`   📅 Created: ${newAdmin.created_at}`);
-      console.log('');
-      console.log('🔐 Use these credentials to access the admin panel:');
+      console.log('✅ Admin user created successfully');
       console.log(`   Email: ${ADMIN_CONFIG.email}`);
       console.log(`   Password: ${ADMIN_CONFIG.password}`);
     } else {
@@ -124,7 +114,7 @@ export const initializeAdminUser = async (): Promise<void> => {
 
 /**
  * Check if admin user exists and has proper privileges
- * Useful for health checks or debugging
+ * Useful for health checks
  */
 export const checkAdminUser = async (): Promise<boolean> => {
   try {

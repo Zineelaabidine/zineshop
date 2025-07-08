@@ -16,12 +16,17 @@ import { testConnection, closePool } from './config/database';
 // Import admin initialization
 import { initializeAdminUser } from './utils/initAdmin';
 
+// Import Supabase Storage setup
+import { setupProductImagesBucket } from './utils/setupSupabaseStorageBucket';
+
 // Import middleware
 import { errorHandler, notFound } from './middleware/errorHandler';
 
 // Import routes
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
+import uploadRoutes from './routes/upload';
+import productsRoutes from './routes/products';
 
 // Create Express app
 const app: Application = express();
@@ -31,7 +36,26 @@ testConnection();
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https://images.unsplash.com",
+        "https://*.supabase.co",
+        "https://hefxcscvefwvowrnobzr.supabase.co"
+      ],
+      connectSrc: ["'self'", "https://*.supabase.co"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
 
 // Rate limiting configuration
@@ -79,6 +103,8 @@ app.get('/health', (req: Request, res: Response) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/products', productsRoutes);
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../client/dist')));
@@ -142,6 +168,9 @@ const startServer = async (): Promise<void> => {
   try {
     // Initialize admin user after database connection is established
     await initializeAdminUser();
+
+    // Set up Supabase Storage bucket for product images
+    await setupProductImagesBucket();
 
     // Start HTTP server
     const PORT: number = parseInt(process.env.PORT || '5000', 10);

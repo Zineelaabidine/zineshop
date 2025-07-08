@@ -7,6 +7,10 @@ import {
   AdminStats,
   AdminPageState,
   AdminDeleteProductResponse,
+  AdminCreateProductResponse,
+  AdminUpdateProductResponse,
+  CreateProductRequest,
+  UpdateProductRequest,
   getStatusBadgeClasses,
   getStatusText,
   getStockStatusClasses
@@ -38,6 +42,42 @@ const AdminPage: React.FC = () => {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Add Product form state
+  const [isCreating, setIsCreating] = useState(false);
+  const [createMessage, setCreateMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [formData, setFormData] = useState<CreateProductRequest>({
+    name: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    category_id: '',
+    image_url: ''
+  });
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  // Image upload state
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Edit Product form state
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editFormData, setEditFormData] = useState<UpdateProductRequest>({
+    name: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    category_id: '',
+    image_url: ''
+  });
+  const [editFormErrors, setEditFormErrors] = useState<{ [key: string]: string }>({});
+
+  // Edit Image upload state
+  const [editSelectedImage, setEditSelectedImage] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [editIsDragOver, setEditIsDragOver] = useState(false);
 
   // Filter products based on search and filters
   const filteredProducts = state.products.filter(product => {
@@ -172,6 +212,444 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Form validation function
+  const validateForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+
+    // Validate name
+    if (!formData.name.trim()) {
+      errors.name = 'Product name is required';
+    } else if (formData.name.trim().length < 2 || formData.name.trim().length > 100) {
+      errors.name = 'Product name must be between 2 and 100 characters';
+    }
+
+    // Validate category
+    if (!formData.category_id) {
+      errors.category_id = 'Category is required';
+    }
+
+    // Validate price
+    if (formData.price <= 0) {
+      errors.price = 'Price must be a positive number';
+    }
+
+    // Validate stock
+    if (formData.stock < 0 || !Number.isInteger(formData.stock)) {
+      errors.stock = 'Stock must be a non-negative integer';
+    }
+
+    // Validate description (optional)
+    if (formData.description && formData.description.length > 500) {
+      errors.description = 'Description must be 500 characters or less';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Edit form validation function
+  const validateEditForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+
+    // Validate name
+    if (!editFormData.name.trim()) {
+      errors.name = 'Product name is required';
+    } else if (editFormData.name.trim().length < 2 || editFormData.name.trim().length > 100) {
+      errors.name = 'Product name must be between 2 and 100 characters';
+    }
+
+    // Validate category
+    if (!editFormData.category_id) {
+      errors.category_id = 'Category is required';
+    }
+
+    // Validate price
+    if (editFormData.price <= 0) {
+      errors.price = 'Price must be a positive number';
+    }
+
+    // Validate stock
+    if (editFormData.stock < 0 || !Number.isInteger(editFormData.stock)) {
+      errors.stock = 'Stock must be a non-negative integer';
+    }
+
+    // Validate description (optional)
+    if (editFormData.description && editFormData.description.length > 500) {
+      errors.description = 'Description must be 500 characters or less';
+    }
+
+    setEditFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Create product function
+  const createProduct = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setCreateMessage(null);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data: AdminCreateProductResponse = await response.json();
+
+      if (data.success && data.data) {
+        // Add the new product to local state
+        setState(prev => ({
+          ...prev,
+          products: [data.data!.product, ...prev.products]
+        }));
+
+        // Show success message
+        setCreateMessage({
+          type: 'success',
+          text: data.message || 'Product created successfully'
+        });
+
+        // Refresh stats to reflect the new product
+        fetchStats();
+
+        // Reset form and close modal after a short delay
+        setTimeout(() => {
+          resetAddForm();
+          setShowAddModal(false);
+          setCreateMessage(null);
+        }, 1500);
+
+      } else {
+        setCreateMessage({
+          type: 'error',
+          text: data.message || 'Failed to create product'
+        });
+      }
+    } catch (error) {
+      setCreateMessage({
+        type: 'error',
+        text: 'Network error while creating product'
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Update product function
+  const updateProduct = async () => {
+    if (!validateEditForm() || !selectedProduct) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setUpdateMessage(null);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/products/${selectedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editFormData)
+      });
+
+      const data: AdminUpdateProductResponse = await response.json();
+
+      if (data.success && data.data) {
+        // Update the product in local state
+        setState(prev => ({
+          ...prev,
+          products: prev.products.map(product =>
+            product.id === selectedProduct.id ? data.data!.product : product
+          )
+        }));
+
+        // Show success message
+        setUpdateMessage({
+          type: 'success',
+          text: data.message || 'Product updated successfully'
+        });
+
+        // Refresh stats to reflect the updated product
+        fetchStats();
+
+        // Reset form and close modal after a short delay
+        setTimeout(() => {
+          resetEditForm();
+          setShowEditModal(false);
+          setUpdateMessage(null);
+        }, 1500);
+
+      } else {
+        setUpdateMessage({
+          type: 'error',
+          text: data.message || 'Failed to update product'
+        });
+      }
+    } catch (error) {
+      setUpdateMessage({
+        type: 'error',
+        text: 'Network error while updating product'
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Reset add form
+  const resetAddForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: 0,
+      stock: 0,
+      category_id: '',
+      image_url: ''
+    });
+    setFormErrors({});
+    setCreateMessage(null);
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsDragOver(false);
+  };
+
+  // Reset edit form function
+  const resetEditForm = () => {
+    setEditFormData({
+      name: '',
+      description: '',
+      price: 0,
+      stock: 0,
+      category_id: '',
+      image_url: ''
+    });
+    setEditFormErrors({});
+    setUpdateMessage(null);
+    setEditSelectedImage(null);
+    setEditImagePreview(null);
+  };
+
+  // Image upload function
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/upload/product-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        return data.data.imageUrl;
+      } else {
+        throw new Error(data.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      throw error;
+    }
+  };
+
+  // Image handling functions
+  const handleImageSelect = async (file: File) => {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setFormErrors(prev => ({
+        ...prev,
+        image: 'Please select a valid image file (JPEG, PNG, GIF, WebP)'
+      }));
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      setFormErrors(prev => ({
+        ...prev,
+        image: 'Image file size must be less than 10MB'
+      }));
+      return;
+    }
+
+    // Clear any previous image errors
+    setFormErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.image;
+      return newErrors;
+    });
+
+    setSelectedImage(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image to Supabase Storage
+    try {
+      setFormErrors(prev => ({
+        ...prev,
+        image: 'Uploading image...'
+      }));
+
+      const imageUrl = await uploadImage(file);
+
+      if (imageUrl) {
+        handleInputChange('image_url', imageUrl);
+        // Clear upload message
+        setFormErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.image;
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      setFormErrors(prev => ({
+        ...prev,
+        image: 'Failed to upload image. Please try again.'
+      }));
+      // Reset image state on upload failure
+      setSelectedImage(null);
+      setImagePreview(null);
+      handleInputChange('image_url', '');
+    }
+  };
+
+  const handleImageRemove = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    handleInputChange('image_url', '');
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageSelect(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleImageSelect(files[0]);
+    }
+  };
+
+  // Edit form image handling functions
+  const handleEditImageSelect = async (file: File) => {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setEditFormErrors(prev => ({
+        ...prev,
+        image: 'Please select a valid image file (JPEG, PNG, GIF, WebP)'
+      }));
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      setEditFormErrors(prev => ({
+        ...prev,
+        image: 'Image file size must be less than 10MB'
+      }));
+      return;
+    }
+
+    // Clear any previous image errors
+    setEditFormErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.image;
+      return newErrors;
+    });
+
+    setEditSelectedImage(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setEditImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image to Supabase Storage
+    try {
+      setEditFormErrors(prev => ({
+        ...prev,
+        image: 'Uploading image...'
+      }));
+
+      const imageUrl = await uploadImage(file);
+
+      if (imageUrl) {
+        handleEditInputChange('image_url', imageUrl);
+        // Clear upload message
+        setEditFormErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.image;
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      setEditFormErrors(prev => ({
+        ...prev,
+        image: 'Failed to upload image. Please try again.'
+      }));
+      // Reset image state on upload failure
+      setEditSelectedImage(null);
+      setEditImagePreview(null);
+      handleEditInputChange('image_url', '');
+    }
+  };
+
+  const handleEditImageRemove = () => {
+    setEditSelectedImage(null);
+    setEditImagePreview(null);
+    handleEditInputChange('image_url', '');
+  };
+
+  const handleEditFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleEditImageSelect(files[0]);
+    }
+  };
+
   // Delete product function
   const deleteProduct = async (productId: string) => {
     try {
@@ -238,6 +716,29 @@ const AdminPage: React.FC = () => {
   // Handler functions
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
+
+    // Populate edit form with product data
+    setEditFormData({
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      stock: product.stock,
+      category_id: product.category_id || '',
+      image_url: product.image_url || ''
+    });
+
+    // Set image preview if product has an image
+    if (product.image_url) {
+      setEditImagePreview(product.image_url);
+    } else {
+      setEditImagePreview(null);
+    }
+
+    // Clear any previous errors and messages
+    setEditFormErrors({});
+    setUpdateMessage(null);
+    setEditSelectedImage(null);
+
     setShowEditModal(true);
   };
 
@@ -257,6 +758,54 @@ const AdminPage: React.FC = () => {
     setShowDeleteModal(false);
     setProductToDelete(null);
     setDeleteMessage(null);
+  };
+
+  // Form input handlers
+  const handleInputChange = (field: keyof CreateProductRequest, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  // Edit form input handlers
+  const handleEditInputChange = (field: keyof UpdateProductRequest, value: string | number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear error for this field when user starts typing
+    if (editFormErrors[field]) {
+      setEditFormErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const handleAddModalOpen = () => {
+    resetAddForm();
+    setShowAddModal(true);
+  };
+
+  const handleAddModalClose = () => {
+    setShowAddModal(false);
+    resetAddForm();
+  };
+
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
+    resetEditForm();
+    setSelectedProduct(null);
   };
 
   const handleFilterChange = (filterType: keyof typeof state.filters, value: string) => {
@@ -311,7 +860,7 @@ const AdminPage: React.FC = () => {
               <p className="text-gray-600 mt-1">Manage your products and inventory</p>
             </div>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleAddModalOpen}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -521,13 +1070,23 @@ const AdminPage: React.FC = () => {
                               <img
                                 src={product.image_url}
                                 alt={product.name}
-                                className="h-12 w-12 rounded-lg object-cover"
+                                className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                onError={(e) => {
+                                  // Hide broken image and show fallback
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
                               />
-                            ) : (
-                              <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                                <Package className="w-6 h-6 text-gray-400" />
-                              </div>
-                            )}
+                            ) : null}
+                            <div
+                              className={`h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center ${
+                                product.image_url ? 'hidden' : ''
+                              }`}
+                            >
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
@@ -608,45 +1167,78 @@ const AdminPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Name
+                      Product Name *
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white ${
+                        formErrors.name ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="Enter product name"
                     />
+                    {formErrors.name && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category
+                      Category *
                     </label>
-                    <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white">
+                    <select
+                      value={formData.category_id}
+                      onChange={(e) => handleInputChange('category_id', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white ${
+                        formErrors.category_id ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    >
                       <option value="">Select category</option>
                       {state.categories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                       ))}
                     </select>
+                    {formErrors.category_id && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.category_id}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price ($)
+                      Price ($) *
                     </label>
                     <input
                       type="number"
                       step="0.01"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white"
+                      min="0"
+                      value={formData.price || ''}
+                      onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white ${
+                        formErrors.price ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="0.00"
                     />
+                    {formErrors.price && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.price}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stock Quantity
+                      Stock Quantity *
                     </label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white"
+                      min="0"
+                      step="1"
+                      value={formData.stock || ''}
+                      onChange={(e) => handleInputChange('stock', parseInt(e.target.value) || 0)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white ${
+                        formErrors.stock ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="0"
                     />
+                    {formErrors.stock && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.stock}</p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -655,35 +1247,130 @@ const AdminPage: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white resize-vertical"
-                    placeholder="Enter product description"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-white resize-vertical ${
+                      formErrors.description ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter product description (optional)"
                   ></textarea>
+                  {formErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Image
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Package className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('image-upload-input')?.click()}
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                      isDragOver
+                        ? 'border-indigo-400 bg-indigo-50'
+                        : formErrors.image
+                          ? 'border-red-300 bg-red-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <input
+                      id="image-upload-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+
+                    {imagePreview ? (
+                      <div className="space-y-4">
+                        <div className="relative inline-block">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="max-w-full max-h-48 rounded-lg shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleImageRemove();
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {selectedImage?.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Click to change or drag a new image
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Package className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {isDragOver ? 'Drop image here' : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to 10MB</p>
+                      </div>
+                    )}
                   </div>
+                  {formErrors.image && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.image}</p>
+                  )}
                 </div>
               </form>
+
+              {/* Success/Error Messages */}
+              {createMessage && (
+                <div className={`mt-4 p-3 rounded-lg ${
+                  createMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}>
+                  <div className="flex items-center">
+                    {createMessage.type === 'success' ? (
+                      <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center mr-2 text-xs">
+                        ✓
+                      </div>
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center mr-2 text-xs">
+                        !
+                      </div>
+                    )}
+                    <span className="text-sm font-medium">{createMessage.text}</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowAddModal(false)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={handleAddModalClose}
+                disabled={isCreating}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={createProduct}
+                disabled={isCreating}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                Add Product
+                {isCreating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Add Product
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -702,48 +1389,77 @@ const AdminPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Name
+                      Product Name *
                     </label>
                     <input
                       type="text"
-                      defaultValue={selectedProduct.name}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                      value={editFormData.name}
+                      onChange={(e) => handleEditInputChange('name', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white ${
+                        editFormErrors.name ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter product name"
                     />
+                    {editFormErrors.name && (
+                      <p className="mt-1 text-sm text-red-600">{editFormErrors.name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category
+                      Category *
                     </label>
                     <select
-                      defaultValue={selectedProduct.category_id || ''}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                      value={editFormData.category_id}
+                      onChange={(e) => handleEditInputChange('category_id', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white ${
+                        editFormErrors.category_id ? 'border-red-300' : 'border-gray-300'
+                      }`}
                     >
                       <option value="">Select category</option>
                       {state.categories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                       ))}
                     </select>
+                    {editFormErrors.category_id && (
+                      <p className="mt-1 text-sm text-red-600">{editFormErrors.category_id}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price ($)
+                      Price ($) *
                     </label>
                     <input
                       type="number"
                       step="0.01"
-                      defaultValue={selectedProduct.price}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                      min="0"
+                      value={editFormData.price}
+                      onChange={(e) => handleEditInputChange('price', parseFloat(e.target.value) || 0)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white ${
+                        editFormErrors.price ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="0.00"
                     />
+                    {editFormErrors.price && (
+                      <p className="mt-1 text-sm text-red-600">{editFormErrors.price}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stock Quantity
+                      Stock Quantity *
                     </label>
                     <input
                       type="number"
-                      defaultValue={selectedProduct.stock}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                      min="0"
+                      value={editFormData.stock}
+                      onChange={(e) => handleEditInputChange('stock', parseInt(e.target.value) || 0)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white ${
+                        editFormErrors.stock ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="0"
                     />
+                    {editFormErrors.stock && (
+                      <p className="mt-1 text-sm text-red-600">{editFormErrors.stock}</p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -752,36 +1468,138 @@ const AdminPage: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
-                    defaultValue={selectedProduct.description}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white resize-vertical"
-                  ></textarea>
+                    value={editFormData.description}
+                    onChange={(e) => handleEditInputChange('description', e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white resize-vertical ${
+                      editFormErrors.description ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter product description (optional)"
+                  />
+                  {editFormErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{editFormErrors.description}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
+                    Product Image
                   </label>
-                  <select
-                    defaultValue={selectedProduct.stock === 0 ? 'out_of_stock' : selectedProduct.stock < 10 ? 'low_stock' : 'active'}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white"
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                      editIsDragOver
+                        ? 'border-indigo-400 bg-indigo-50'
+                        : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
+                    }`}
+                    onClick={() => document.getElementById('edit-file-input')?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setEditIsDragOver(true);
+                    }}
+                    onDragLeave={() => setEditIsDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setEditIsDragOver(false);
+                      const files = e.dataTransfer.files;
+                      if (files.length > 0) {
+                        handleEditFileInputChange({ target: { files } } as any);
+                      }
+                    }}
                   >
-                    <option value="active">Active (Stock ≥ 10)</option>
-                    <option value="low_stock">Low Stock (1-9)</option>
-                    <option value="out_of_stock">Out of Stock (0)</option>
-                  </select>
+                    <input
+                      id="edit-file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditFileInputChange}
+                      className="hidden"
+                    />
+
+                    {editImagePreview ? (
+                      <div className="space-y-4">
+                        <div className="relative inline-block">
+                          <img
+                            src={editImagePreview}
+                            alt="Preview"
+                            className="max-w-full max-h-48 rounded-lg shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditImageRemove();
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {editSelectedImage?.name || 'Current image'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Click to change or drag a new image
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Package className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {editIsDragOver ? 'Drop image here' : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to 10MB</p>
+                      </div>
+                    )}
+                  </div>
+                  {editFormErrors.image && (
+                    <p className="mt-1 text-sm text-red-600">{editFormErrors.image}</p>
+                  )}
                 </div>
               </form>
+
+              {/* Success/Error Messages */}
+              {updateMessage && (
+                <div className={`mt-4 p-3 rounded-lg ${
+                  updateMessage.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}>
+                  <div className="flex items-center">
+                    {updateMessage.type === 'success' ? (
+                      <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center mr-2 text-xs">
+                        ✓
+                      </div>
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center mr-2 text-xs">
+                        !
+                      </div>
+                    )}
+                    <span className="text-sm font-medium">{updateMessage.text}</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowEditModal(false)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={handleEditModalClose}
+                disabled={isUpdating}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={updateProduct}
+                disabled={isUpdating}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                Save Changes
+                {isUpdating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
               </button>
             </div>
           </div>
