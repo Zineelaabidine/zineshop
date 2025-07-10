@@ -6,3 +6,5 @@ export { default as NotFoundPage } from './NotFoundPage';
 export { default as ProductsPage } from './ProductsPage';
 export { default as SignInPage } from './SignInPage';
 export { default as SignUpPage } from './SignUpPage';
+export { default as CheckoutPage } from './CheckoutPage';
+export { default as OrderConfirmationPage } from './OrderConfirmationPage';

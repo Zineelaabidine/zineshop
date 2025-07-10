@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Plus, Minus, Trash2, ShoppingBag, Package, ChevronDown } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { formatPrice } from '../utils/cartUtils';
@@ -11,14 +12,15 @@ interface CartDrawerProps {
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { 
-    items, 
-    totalItems, 
-    totalPrice, 
-    removeItem, 
-    updateQuantity, 
+  const navigate = useNavigate();
+  const {
+    items,
+    totalItems,
+    totalPrice,
+    removeItem,
+    updateQuantity,
     clearCart,
-    isLoading 
+    isLoading
   } = useCart();
   
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
@@ -292,7 +294,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Proceed to Checkout - Primary Action */}
-                <button className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 transform hover:-translate-y-0.5 min-h-[44px] flex items-center justify-center">
+                <button
+                  onClick={() => {
+                    onClose();
+                    navigate('/checkout');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 transform hover:-translate-y-0.5 min-h-[44px] flex items-center justify-center"
+                >
                   Proceed to Checkout
                 </button>
 

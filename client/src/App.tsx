@@ -18,6 +18,8 @@ import AboutPage from './pages/AboutPage';
 import AdminPage from './pages/AdminPage';
 import ContactPage from './pages/ContactPage';
 import SignInPage from './pages/SignInPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import SignUpPage from './pages/SignUpPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -56,6 +58,8 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
             <Route path="/admin" element={
               <AdminRoute>
                 <AdminPage />

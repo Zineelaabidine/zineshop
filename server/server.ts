@@ -27,6 +27,8 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import uploadRoutes from './routes/upload';
 import productsRoutes from './routes/products';
+import deliveryRoutes from './routes/delivery';
+import ordersRoutes from './routes/orders';
 
 // Create Express app
 const app: Application = express();
@@ -113,6 +115,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api', deliveryRoutes);
+app.use('/api/orders', ordersRoutes);
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../client/dist')));
