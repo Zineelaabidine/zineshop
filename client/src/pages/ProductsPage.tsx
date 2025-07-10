@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft, Package, Loader2, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft, Package, Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface Product {
   id: string;
@@ -37,9 +37,21 @@ interface CategoriesResponse {
 }
 
 const ProductsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // UI state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Filter state - initialized from URL params
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || 'all');
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
+
+  // Pagination state - initialized from URL params
+  const [currentPage, setCurrentPage] = useState<number>(parseInt(searchParams.get('page') || '1'));
+  const [totalPages, setTotalPages] = useState<number>(0);
+
+  // Responsive products per page
+  const [productsPerPage, setProductsPerPage] = useState<number>(24);
 
   // API state
   const [products, setProducts] = useState<Product[]>([]);
@@ -49,8 +61,30 @@ const ProductsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Fetch products from API
-  const fetchProducts = async (category: string = 'all', search: string = '') => {
+  // Update responsive products per page based on screen size
+  useEffect(() => {
+    const updateProductsPerPage = () => {
+      const isMobile = window.innerWidth < 768;
+      setProductsPerPage(isMobile ? 12 : 24);
+    };
+
+    updateProductsPerPage();
+    window.addEventListener('resize', updateProductsPerPage);
+    return () => window.removeEventListener('resize', updateProductsPerPage);
+  }, []);
+
+  // Update URL params when state changes
+  const updateURLParams = useCallback((page: number, category: string, search: string) => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page.toString());
+    if (category !== 'all') params.set('category', category);
+    if (search.trim()) params.set('search', search.trim());
+
+    setSearchParams(params);
+  }, [setSearchParams]);
+
+  // Fetch products from API with pagination
+  const fetchProducts = async (category: string = 'all', search: string = '', page: number = 1) => {
     try {
       setIsLoadingProducts(true);
       setError(null);
@@ -62,7 +96,8 @@ const ProductsPage: React.FC = () => {
       if (search.trim()) {
         params.append('search', search.trim());
       }
-      params.append('limit', '50'); // Get more products for the products page
+      params.append('page', page.toString());
+      params.append('limit', productsPerPage.toString());
 
       const response = await fetch(`/api/products?${params.toString()}`);
       const data: ProductsResponse = await response.json();
@@ -70,6 +105,10 @@ const ProductsPage: React.FC = () => {
       if (data.success && data.data) {
         setProducts(data.data.products);
         setTotalCount(data.data.totalCount);
+        setTotalPages(Math.ceil(data.data.totalCount / productsPerPage));
+
+        // Update URL params
+        updateURLParams(page, category, search);
       } else {
         setError(data.message || 'Failed to fetch products');
       }
@@ -103,22 +142,82 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  // Load data on component mount
+  // Load categories on component mount
   useEffect(() => {
-    fetchProducts();
     fetchCategories();
   }, []);
 
-  // Refetch products when category or search changes
+  // Refetch products when filters, page, or productsPerPage changes
   useEffect(() => {
-    fetchProducts(selectedCategory, searchQuery);
-  }, [selectedCategory, searchQuery]);
+    fetchProducts(selectedCategory, searchQuery, currentPage);
+  }, [selectedCategory, searchQuery, currentPage, productsPerPage]);
+
+  // Handle category change
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1); // Reset to first page when changing category
+  };
+
+  // Handle search change with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+      fetchProducts(selectedCategory, searchQuery, 1);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      // Scroll to top when changing pages
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Create categories list with "All Products" option
   const allCategories = [
     { id: 'all', name: 'All Products', created_at: '' },
     ...categories
   ];
+
+  // Generate pagination numbers
+  const generatePaginationNumbers = () => {
+    const delta = 2; // Number of pages to show on each side of current page
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else if (totalPages > 1) {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
+  // Calculate results range for display
+  const getResultsRange = () => {
+    const start = (currentPage - 1) * productsPerPage + 1;
+    const end = Math.min(currentPage * productsPerPage, totalCount);
+    return { start, end };
+  };
+
+  const resultsRange = getResultsRange();
 
   // Loading state
   if (isLoadingProducts && products.length === 0) {
@@ -233,7 +332,7 @@ const ProductsPage: React.FC = () => {
             {allCategories.map((category) => (
               <button
                 key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => handleCategoryChange(category.id)}
                 className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                   selectedCategory === category.id
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
@@ -246,21 +345,37 @@ const ProductsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Products Count */}
-        <div className="mb-6">
-          <p className="text-gray-400">
-            Showing {products.length} of {totalCount} product{totalCount !== 1 ? 's' : ''}
-            {selectedCategory !== 'all' && (
-              <span className="ml-2">
-                in <span className="text-blue-400">{allCategories.find(c => c.id === selectedCategory)?.name}</span>
-              </span>
-            )}
-            {searchQuery && (
-              <span className="ml-2">
-                for "<span className="text-blue-400">{searchQuery}</span>"
-              </span>
-            )}
-          </p>
+        {/* Products Count and Pagination Info */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-gray-400">
+              {totalCount > 0 ? (
+                <>
+                  Showing <span className="text-gray-200 font-medium">{resultsRange.start}-{resultsRange.end}</span> of{' '}
+                  <span className="text-gray-200 font-medium">{totalCount}</span> product{totalCount !== 1 ? 's' : ''}
+                  {selectedCategory !== 'all' && (
+                    <span className="ml-2">
+                      in <span className="text-blue-400">{allCategories.find(c => c.id === selectedCategory)?.name}</span>
+                    </span>
+                  )}
+                  {searchQuery && (
+                    <span className="ml-2">
+                      for "<span className="text-blue-400">{searchQuery}</span>"
+                    </span>
+                  )}
+                </>
+              ) : (
+                'No products found'
+              )}
+            </p>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="text-sm text-gray-400">
+              Page <span className="text-gray-200 font-medium">{currentPage}</span> of{' '}
+              <span className="text-gray-200 font-medium">{totalPages}</span>
+            </div>
+          )}
         </div>
 
         {/* No Products State */}
@@ -278,6 +393,7 @@ const ProductsPage: React.FC = () => {
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
+                  setCurrentPage(1);
                 }}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors duration-200"
               >
@@ -417,6 +533,97 @@ const ProductsPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-col items-center space-y-4">
+            {/* Pagination Navigation */}
+            <div className="flex items-center space-x-2">
+              {/* First Page */}
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  currentPage === 1
+                    ? 'text-gray-500 cursor-not-allowed'
+                    : 'text-gray-300 hover:text-blue-400 hover:bg-gray-800'
+                }`}
+                title="First page"
+              >
+                <ChevronsLeft className="w-5 h-5" />
+              </button>
+
+              {/* Previous Page */}
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  currentPage === 1
+                    ? 'text-gray-500 cursor-not-allowed'
+                    : 'text-gray-300 hover:text-blue-400 hover:bg-gray-800'
+                }`}
+                title="Previous page"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1">
+                {generatePaginationNumbers().map((pageNum, index) => (
+                  <div key={index}>
+                    {pageNum === '...' ? (
+                      <span className="px-3 py-2 text-gray-500">...</span>
+                    ) : (
+                      <button
+                        onClick={() => handlePageChange(pageNum as number)}
+                        className={`px-3 py-2 rounded-lg transition-all duration-200 min-w-[40px] ${
+                          currentPage === pageNum
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                            : 'text-gray-300 hover:text-blue-400 hover:bg-gray-800'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Next Page */}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  currentPage === totalPages
+                    ? 'text-gray-500 cursor-not-allowed'
+                    : 'text-gray-300 hover:text-blue-400 hover:bg-gray-800'
+                }`}
+                title="Next page"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Last Page */}
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  currentPage === totalPages
+                    ? 'text-gray-500 cursor-not-allowed'
+                    : 'text-gray-300 hover:text-blue-400 hover:bg-gray-800'
+                }`}
+                title="Last page"
+              >
+                <ChevronsRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mobile-friendly page info */}
+            <div className="text-sm text-gray-400 text-center">
+              Page {currentPage} of {totalPages} • {totalCount} total products
+            </div>
           </div>
         )}
       </div>

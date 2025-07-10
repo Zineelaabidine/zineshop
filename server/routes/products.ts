@@ -62,7 +62,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response<ProductsResponse
 
     // Category filter
     if (category && typeof category === 'string' && category !== 'all') {
-      whereConditions.push(`c.name ILIKE $${paramIndex}`);
+      whereConditions.push(`p.category_id = $${paramIndex}`);
       queryParams.push(category);
       paramIndex++;
     }

@@ -59,16 +59,23 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting configuration
+// Rate limiting configuration - more lenient for development
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes default
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || (process.env.NODE_ENV === 'development' ? '1000' : '100')), // 1000 for dev, 100 for prod
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip rate limiting for health checks and static assets in development
+    if (process.env.NODE_ENV === 'development') {
+      return req.path === '/health' || req.path.startsWith('/assets/') || req.path === '/vite.svg';
+    }
+    return false;
+  }
 });
 
 app.use(limiter);
