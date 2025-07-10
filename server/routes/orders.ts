@@ -32,6 +32,7 @@ interface CreateOrderRequest {
   subtotal: number;
   shippingCost: number;
   taxAmount: number;
+  codFee?: number;
   total: number;
   orderNotes?: string;
   customerEmail: string;
@@ -89,9 +90,9 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
       const orderResult = await query(
         `INSERT INTO orders (
           user_id, shipping_address_id, billing_address_id, delivery_method_id,
-          subtotal, shipping_cost, tax_amount, total, status, payment_method,
+          subtotal, shipping_cost, tax_amount, cod_fee, total, status, payment_method,
           order_notes, customer_email
-        ) VALUES ($1, $2, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10)
+        ) VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11)
         RETURNING id`,
         [
           userId,
@@ -100,6 +101,7 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
           orderData.subtotal,
           orderData.shippingCost,
           orderData.taxAmount,
+          orderData.codFee || 0,
           orderData.total,
           orderData.paymentMethod,
           orderData.orderNotes || null,
@@ -158,6 +160,7 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
           subtotal: orderData.subtotal,
           shippingCost: orderData.shippingCost,
           taxAmount: orderData.taxAmount,
+          codFee: orderData.codFee || 0,
           items: orderData.items,
           shippingAddress: orderData.shippingAddress,
           deliveryMethod: {
@@ -240,6 +243,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
         subtotal: parseFloat(order.subtotal),
         shippingCost: parseFloat(order.shipping_cost),
         taxAmount: parseFloat(order.tax_amount),
+        codFee: parseFloat(order.cod_fee || '0'),
         items: itemsResult.rows.map(item => ({
           id: item.id,
           name: item.name,

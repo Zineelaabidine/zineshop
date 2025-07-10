@@ -22,6 +22,7 @@ interface OrderData {
   subtotal: number;
   shippingCost: number;
   taxAmount: number;
+  codFee?: number;
   items: Array<{
     id: string;
     name: string;
@@ -190,6 +191,12 @@ const OrderConfirmationPage: React.FC = () => {
                 <span>Tax</span>
                 <span>{formatPrice(orderData.taxAmount)}</span>
               </div>
+              {orderData.codFee && orderData.codFee > 0 && (
+                <div className="flex justify-between text-gray-300">
+                  <span>Cash on Delivery Fee</span>
+                  <span>{formatPrice(orderData.codFee)}</span>
+                </div>
+              )}
               <div className="border-t border-gray-700 pt-2">
                 <div className="flex justify-between text-lg font-bold text-gray-100">
                   <span>Total</span>

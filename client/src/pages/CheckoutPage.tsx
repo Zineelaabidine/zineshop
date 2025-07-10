@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CreditCard, 
-  Truck, 
-  MapPin, 
-  User, 
-  Phone, 
+import {
+  CreditCard,
+  Truck,
+  MapPin,
+  User,
+  Phone,
   Mail,
   ShoppingBag,
   AlertCircle,
   CheckCircle,
-  Loader
+  Loader,
+  Banknote
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,7 +39,7 @@ interface DeliveryMethod {
 }
 
 interface PaymentMethod {
-  type: 'credit_card' | 'paypal';
+  type: 'credit_card' | 'paypal' | 'cash_on_delivery';
   cardNumber?: string;
   expiryDate?: string;
   cvv?: string;
@@ -131,7 +132,8 @@ const CheckoutPage: React.FC = () => {
   const subtotal = totalPrice;
   const taxRate = 0.08; // 8% tax
   const taxAmount = subtotal * taxRate;
-  const finalTotal = subtotal + shippingCost + taxAmount;
+  const codFee = paymentMethod.type === 'cash_on_delivery' ? 2.99 : 0;
+  const finalTotal = subtotal + shippingCost + taxAmount + codFee;
 
   // Validation
   const validateForm = (): boolean => {
@@ -198,6 +200,7 @@ const CheckoutPage: React.FC = () => {
         subtotal,
         shippingCost,
         taxAmount,
+        codFee,
         total: finalTotal,
         orderNotes: orderNotes.trim() || null,
         customerEmail: shippingAddress.email
@@ -521,7 +524,7 @@ const CheckoutPage: React.FC = () => {
 
                 {/* Payment Method Selection */}
                 <div className="mb-6">
-                  <div className="flex space-x-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod.type === 'credit_card'
                         ? 'border-blue-500 bg-blue-500/10'
@@ -556,6 +559,23 @@ const CheckoutPage: React.FC = () => {
                         P
                       </div>
                       <span className="text-gray-100">PayPal</span>
+                    </label>
+
+                    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                      paymentMethod.type === 'cash_on_delivery'
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        value="cash_on_delivery"
+                        checked={paymentMethod.type === 'cash_on_delivery'}
+                        onChange={(e) => setPaymentMethod(prev => ({ ...prev, type: e.target.value as 'cash_on_delivery' }))}
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                      />
+                      <Banknote className="w-5 h-5 ml-3 mr-2 text-gray-300" />
+                      <span className="text-gray-100">Cash on Delivery</span>
                     </label>
                   </div>
                 </div>
@@ -652,6 +672,25 @@ const CheckoutPage: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                {/* Cash on Delivery Message */}
+                {paymentMethod.type === 'cash_on_delivery' && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <Banknote className="w-5 h-5 text-green-400 mt-0.5" />
+                      <div>
+                        <p className="text-green-400 text-sm font-medium mb-1">Cash on Delivery</p>
+                        <p className="text-green-300 text-sm">
+                          Pay with cash when your order is delivered to your doorstep.
+                          A small processing fee of $2.99 will be added to your total.
+                        </p>
+                        <p className="text-green-300 text-xs mt-2">
+                          Please have the exact amount ready for the delivery person.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Order Notes */}
@@ -727,6 +766,14 @@ const CheckoutPage: React.FC = () => {
                   <span>Tax</span>
                   <span>{formatPrice(taxAmount)}</span>
                 </div>
+
+                {/* Cash on Delivery Fee */}
+                {paymentMethod.type === 'cash_on_delivery' && (
+                  <div className="flex justify-between text-gray-300">
+                    <span>Cash on Delivery Fee</span>
+                    <span>{formatPrice(codFee)}</span>
+                  </div>
+                )}
 
                 <div className="border-t border-gray-700 pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-100">

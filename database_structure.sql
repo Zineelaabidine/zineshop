@@ -144,6 +144,23 @@ insert into delivery_methods (name, description, price, estimated_days) values
 ('Express Shipping', 'Fast delivery', 9.99, '2-3 business days'),
 ('Overnight Shipping', 'Next day delivery', 19.99, '1 business day');
 
+-- 💰 Payment Methods Table (Optional - for better organization)
+create table payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  is_active boolean default true,
+  requires_card_details boolean default false,
+  processing_fee numeric(10, 2) default 0,
+  created_at timestamp default now()
+);
+
+-- Insert default payment methods
+insert into payment_methods (name, description, requires_card_details, processing_fee) values
+('credit_card', 'Credit/Debit Card', true, 0.00),
+('paypal', 'PayPal', false, 0.00),
+('cash_on_delivery', 'Cash on Delivery', false, 2.99);
+
 -- 📦 Update Orders Table - Add new columns for checkout
 alter table orders add column shipping_address_id uuid references addresses(id);
 alter table orders add column billing_address_id uuid references addresses(id);
@@ -151,8 +168,9 @@ alter table orders add column delivery_method_id uuid references delivery_method
 alter table orders add column subtotal numeric(10, 2);
 alter table orders add column shipping_cost numeric(10, 2) default 0;
 alter table orders add column tax_amount numeric(10, 2) default 0;
+alter table orders add column cod_fee numeric(10, 2) default 0; -- Cash on Delivery fee
 alter table orders add column order_notes text;
-alter table orders add column payment_method text; -- 'credit_card', 'paypal', etc.
+alter table orders add column payment_method text; -- 'credit_card', 'paypal', 'cash_on_delivery'
 
 -- 💳 Update Payments Table - Add payment details
 alter table payments add column payment_method text; -- 'stripe', 'paypal', 'credit_card'
