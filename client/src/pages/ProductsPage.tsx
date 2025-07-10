@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft, Package, Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
+import ProductRating from '../components/ProductRating';
 
 interface Product {
   id: string;
@@ -11,6 +12,8 @@ interface Product {
   stock: number;
   category_name: string | null;
   created_at: string;
+  average_rating: number | null;
+  review_count: number;
 }
 
 interface Category {
@@ -411,9 +414,10 @@ const ProductsPage: React.FC = () => {
               : 'space-y-6'
           }`}>
             {products.map((product) => (
-              <div
+              <Link
                 key={product.id}
-                className={`group relative bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 ${
+                to={`/product/${product.id}`}
+                className={`group relative bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 block ${
                   viewMode === 'list' ? 'flex' : ''
                 }`}
               >
@@ -499,6 +503,15 @@ const ProductsPage: React.FC = () => {
                     <p className="text-gray-400 mb-3 text-sm">{product.description}</p>
                   )}
 
+                  {/* Rating */}
+                  <div className="mb-3">
+                    <ProductRating
+                      averageRating={product.average_rating}
+                      reviewCount={product.review_count}
+                      size="sm"
+                    />
+                  </div>
+
                   {/* Stock Status */}
                   <div className="flex items-center space-x-2 mb-3">
                     <div className={`w-2 h-2 rounded-full ${
@@ -531,7 +544,7 @@ const ProductsPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

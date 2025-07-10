@@ -9,6 +9,7 @@ import Newsletter from './components/Newsletter';
 import Footer from './components/Footer';
 import AdminRoute from './components/AdminRoute';
 import ProductsPage from './pages/ProductsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 import AboutPage from './pages/AboutPage';
 import AdminPage from './pages/AdminPage';
 import ContactPage from './pages/ContactPage';
@@ -38,6 +39,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/signin" element={<SignInPage />} />

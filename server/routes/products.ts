@@ -14,6 +14,8 @@ interface PublicProduct {
   stock: number;
   category_name: string | null;
   created_at: string;
+  average_rating: number | null;
+  review_count: number;
 }
 
 // Response interfaces
@@ -31,6 +33,14 @@ interface FeaturedProductsResponse {
   message: string;
   data?: {
     products: PublicProduct[];
+  };
+}
+
+interface ProductDetailResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    product: PublicProduct;
   };
 }
 
@@ -82,9 +92,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response<ProductsResponse
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 20));
     const offset = (pageNum - 1) * limitNum;
 
-    // Main query to get products with category information
+    // Main query to get products with category and rating information
     const productsQuery = `
-      SELECT 
+      SELECT
         p.id,
         p.name,
         p.description,
@@ -92,9 +102,12 @@ router.get('/', asyncHandler(async (req: Request, res: Response<ProductsResponse
         p.image_url,
         p.stock,
         p.created_at,
-        c.name as category_name
+        c.name as category_name,
+        prs.average_rating,
+        COALESCE(prs.total_reviews, 0) as review_count
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_ratings_summary prs ON p.id = prs.product_id
       ${whereClause}
       ${orderClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -107,6 +120,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response<ProductsResponse
       SELECT COUNT(*) as total
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_ratings_summary prs ON p.id = prs.product_id
       ${whereClause}
     `;
 
@@ -126,7 +140,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response<ProductsResponse
       image_url: row.image_url,
       stock: parseInt(row.stock),
       category_name: row.category_name,
-      created_at: row.created_at
+      created_at: row.created_at,
+      average_rating: row.average_rating ? parseFloat(row.average_rating) : null,
+      review_count: parseInt(row.review_count) || 0
     }));
 
     const totalCount = parseInt(countResult.rows[0].total);
@@ -158,7 +174,7 @@ router.get('/featured', asyncHandler(async (req: Request, res: Response<Featured
 
     // Get featured products (latest products with images, in stock)
     const featuredQuery = `
-      SELECT 
+      SELECT
         p.id,
         p.name,
         p.description,
@@ -166,9 +182,12 @@ router.get('/featured', asyncHandler(async (req: Request, res: Response<Featured
         p.image_url,
         p.stock,
         p.created_at,
-        c.name as category_name
+        c.name as category_name,
+        prs.average_rating,
+        COALESCE(prs.total_reviews, 0) as review_count
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_ratings_summary prs ON p.id = prs.product_id
       WHERE p.stock > 0 AND p.image_url IS NOT NULL AND p.image_url != ''
       ORDER BY p.created_at DESC
       LIMIT $1
@@ -184,7 +203,9 @@ router.get('/featured', asyncHandler(async (req: Request, res: Response<Featured
       image_url: row.image_url,
       stock: parseInt(row.stock),
       category_name: row.category_name,
-      created_at: row.created_at
+      created_at: row.created_at,
+      average_rating: row.average_rating ? parseFloat(row.average_rating) : null,
+      review_count: parseInt(row.review_count) || 0
     }));
 
 
@@ -234,6 +255,81 @@ router.get('/categories', asyncHandler(async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching categories'
+    });
+  }
+}));
+
+// @route   GET /api/products/:id
+// @desc    Get single product by ID
+// @access  Public
+router.get('/:id', asyncHandler(async (req: Request, res: Response<ProductDetailResponse>) => {
+  try {
+    const { id } = req.params;
+
+    // Validate product ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
+
+    // Get product with category and rating information
+    const productQuery = `
+      SELECT
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.image_url,
+        p.stock,
+        p.created_at,
+        c.name as category_name,
+        prs.average_rating,
+        COALESCE(prs.total_reviews, 0) as review_count
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_ratings_summary prs ON p.id = prs.product_id
+      WHERE p.id = $1
+    `;
+
+    const result = await query(productQuery, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const productRow = result.rows[0];
+    const product: PublicProduct = {
+      id: productRow.id,
+      name: productRow.name,
+      description: productRow.description,
+      price: parseFloat(productRow.price),
+      image_url: productRow.image_url,
+      stock: parseInt(productRow.stock),
+      category_name: productRow.category_name,
+      created_at: productRow.created_at,
+      average_rating: productRow.average_rating ? parseFloat(productRow.average_rating) : null,
+      review_count: parseInt(productRow.review_count) || 0
+    };
+
+    return res.json({
+      success: true,
+      message: 'Product retrieved successfully',
+      data: {
+        product
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching product'
     });
   }
 }));

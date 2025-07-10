@@ -20,7 +20,7 @@ export interface Product {
   category_name?: string;
 }
 
-export interface ProductWithCategory extends Product {
+export interface ProductWithCategory extends Omit<Product, 'category_name'> {
   category_name: string | null;
 }
 

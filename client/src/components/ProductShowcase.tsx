@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, ShoppingCart, Eye, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ProductRating from './ProductRating';
 
 interface Product {
   id: string;
@@ -11,6 +12,8 @@ interface Product {
   stock: number;
   category_name: string | null;
   created_at: string;
+  average_rating: number | null;
+  review_count: number;
 }
 
 const ProductShowcase: React.FC = () => {
@@ -142,9 +145,10 @@ const ProductShowcase: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
-            <div
+            <Link
               key={product.id}
-              className="group relative bg-gray-900 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700"
+              to={`/product/${product.id}`}
+              className="group relative bg-gray-900 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 block"
             >
               {/* Badge for new products (created within last 7 days) */}
               {new Date(product.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
@@ -212,6 +216,15 @@ const ProductShowcase: React.FC = () => {
                   </div>
                 )}
 
+                {/* Rating */}
+                <div className="mb-3">
+                  <ProductRating
+                    averageRating={product.average_rating}
+                    reviewCount={product.review_count}
+                    size="sm"
+                  />
+                </div>
+
                 {/* Description */}
                 {product.description && (
                   <p className="text-sm text-gray-400 mb-3 overflow-hidden" style={{
@@ -252,7 +265,7 @@ const ProductShowcase: React.FC = () => {
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
