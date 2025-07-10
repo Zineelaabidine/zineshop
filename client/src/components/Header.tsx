@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ShoppingCart, User, Menu, X, LogOut, Settings, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import CartDrawer from './CartDrawer';
 
 interface HeaderProps {
   isMenuOpen: boolean;
@@ -10,7 +12,9 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ isMenuOpen, setIsMenuOpen }) => {
   const { user, isAuthenticated, signOut } = useAuth();
+  const { totalItems } = useCart();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
 
   const handleSignOut = () => {
     signOut();
@@ -63,11 +67,17 @@ const Header: React.FC<HeaderProps> = ({ isMenuOpen, setIsMenuOpen }) => {
 
           {/* Right side buttons */}
           <div className="flex items-center space-x-4">
-            <button className="relative p-2 text-gray-300 hover:text-blue-400 transition-colors duration-200 hover:bg-gray-800 rounded-lg">
+            <button
+              onClick={() => setShowCartDrawer(true)}
+              className="relative p-2 text-gray-300 hover:text-blue-400 transition-colors duration-200 hover:bg-gray-800 rounded-lg"
+              title="Shopping Cart"
+            >
               <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                2
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
             </button>
 
             {/* Authentication Section */}
@@ -213,6 +223,12 @@ const Header: React.FC<HeaderProps> = ({ isMenuOpen, setIsMenuOpen }) => {
           </div>
         </div>
       )}
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        isOpen={showCartDrawer}
+        onClose={() => setShowCartDrawer(false)}
+      />
     </header>
   );
 };

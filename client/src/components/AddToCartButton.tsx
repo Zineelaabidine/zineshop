@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
+import { CartError } from '../types/cart';
 
 interface ProductDetail {
   id: string;
@@ -30,6 +32,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const [isAdded, setIsAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { addItem, isInCart, getItem } = useCart();
+
   // Handle add to cart action
   const handleAddToCart = async () => {
     if (!isAvailable || isAdding) return;
@@ -39,7 +43,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       setError(null);
 
       // Prepare cart item data
-      const cartItem = {
+      const cartItemData = {
         productId: product.id,
         name: product.name,
         price: finalPrice,
@@ -49,13 +53,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         maxStock: product.stock
       };
 
-      // For now, we'll simulate an API call and store in localStorage
-      // In a real app, this would be an API call to your backend
-      await simulateAddToCart(cartItem);
+      // Add item to cart using context
+      addItem(cartItemData);
 
       // Show success state
       setIsAdded(true);
-      
+
       // Reset success state after 2 seconds
       setTimeout(() => {
         setIsAdded(false);
@@ -63,53 +66,17 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
     } catch (error) {
       console.error('Error adding to cart:', error);
-      setError('Failed to add item to cart. Please try again.');
+      if (error instanceof CartError) {
+        setError(error.message);
+      } else {
+        setError('Failed to add item to cart. Please try again.');
+      }
     } finally {
       setIsAdding(false);
     }
   };
 
-  // Simulate add to cart API call
-  const simulateAddToCart = async (cartItem: any): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        try {
-          // Get existing cart from localStorage
-          const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-          
-          // Check if item already exists in cart
-          const existingItemIndex = existingCart.findIndex((item: any) => 
-            item.productId === cartItem.productId && 
-            JSON.stringify(item.variants) === JSON.stringify(cartItem.variants)
-          );
 
-          if (existingItemIndex >= 0) {
-            // Update quantity of existing item
-            existingCart[existingItemIndex].quantity += cartItem.quantity;
-          } else {
-            // Add new item to cart
-            existingCart.push({
-              ...cartItem,
-              id: Date.now().toString(), // Simple ID generation
-              addedAt: new Date().toISOString()
-            });
-          }
-
-          // Save updated cart
-          localStorage.setItem('cart', JSON.stringify(existingCart));
-          
-          // Dispatch custom event for cart update
-          window.dispatchEvent(new CustomEvent('cartUpdated', { 
-            detail: { cart: existingCart } 
-          }));
-
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      }, 500); // Simulate network delay
-    });
-  };
 
   // Check if all required variants are selected
   const hasRequiredVariants = () => {

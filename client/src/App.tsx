@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductShowcase from './components/ProductShowcase';
@@ -35,7 +36,8 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
+      <CartProvider>
+        <Router>
         <div className="min-h-screen bg-gray-900">
           <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
 
@@ -66,7 +68,8 @@ function App() {
 
           <Footer />
         </div>
-      </Router>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }
