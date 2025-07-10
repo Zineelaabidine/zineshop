@@ -1,0 +1,49 @@
+/* Custom scrollbar styles for Cart Drawer */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.cart-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cart-scrollable::-webkit-scrollbar-track {
+  background: #374151; /* gray-700 */
+  border-radius: 3px;
+}
+
+.cart-scrollable::-webkit-scrollbar-thumb {
+  background: #6b7280; /* gray-500 */
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.cart-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* gray-400 */
+}
+
+/* Firefox */
+.cart-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 #374151;
+}
+
+/* Smooth scroll behavior */
+.cart-scrollable {
+  scroll-behavior: smooth;
+}
+
+/* Custom animation for scroll indicator */
+@keyframes scroll-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+.scroll-indicator {
+  animation: scroll-bounce 2s infinite;
+}
