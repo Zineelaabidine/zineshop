@@ -8,6 +8,8 @@ import Categories from './components/Categories';
 import Newsletter from './components/Newsletter';
 import Footer from './components/Footer';
 import AdminRoute from './components/AdminRoute';
+import ScrollToTop from './components/ScrollToTop';
+import ScrollToTopButton from './components/ScrollToTopButton';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AboutPage from './pages/AboutPage';
@@ -36,6 +38,13 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-900">
           <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+
+          {/* Scroll to top on route changes */}
+          <ScrollToTop
+            excludePatterns={[]}
+            excludeSearchParams={['page', 'limit', 'search', 'category', 'sortBy', 'sortOrder']}
+          />
+
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
@@ -51,6 +60,10 @@ function App() {
             } />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+
+          {/* Floating scroll to top button */}
+          <ScrollToTopButton />
+
           <Footer />
         </div>
       </Router>
