@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { query } from '../config/database';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 
 const router = express.Router();
@@ -42,10 +42,15 @@ interface CreateOrderRequest {
  * POST /api/orders
  * Create a new order
  */
-router.post('/', asyncHandler(async (req: Request, res: Response) => {
+// Option 1: Required Authentication (current implementation)
+// router.post('/', authenticateToken, asyncHandler(async (req: Request, res: Response) => {
+//   const userId = req.user!.id; // Required - user must be authenticated
+
+// Option 2: Optional Authentication (supports guest checkout)
+router.post('/', optionalAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const orderData: CreateOrderRequest = req.body;
-    const userId = req.user?.id || null; // Optional for guest checkout
+    const userId = req.user?.id || null; // Optional - supports guest checkout
 
     // Validate required fields
     if (!orderData.items || orderData.items.length === 0) {
