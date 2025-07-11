@@ -223,3 +223,65 @@ from orders o
 left join addresses sa on o.shipping_address_id = sa.id
 left join delivery_methods dm on o.delivery_method_id = dm.id
 left join payments p on o.id = p.order_id;
+-- ===============================================
+-- ⭐ PRODUCT REVIEW SYSTEM ENHANCEMENTS
+-- ===============================================
+-- Additional optimizations for the review system
+
+-- 🔄 Add review count and average rating columns to products table for performance
+-- (Optional - the view already provides this, but direct columns are faster)
+alter table products add column if not exists average_rating numeric(3, 2) default 0;
+alter table products add column if not exists review_count integer default 0;
+
+-- 🔄 Function to update product ratings automatically
+create or replace function update_product_rating()
+returns trigger as $$
+begin
+  -- Update the product's rating statistics
+  update products set
+    average_rating = (
+      select coalesce(round(avg(rating)::numeric, 2), 0)
+      from product_reviews
+      where product_id = coalesce(new.product_id, old.product_id)
+    ),
+    review_count = (
+      select count(*)
+      from product_reviews
+      where product_id = coalesce(new.product_id, old.product_id)
+    )
+  where id = coalesce(new.product_id, old.product_id);
+
+  return coalesce(new, old);
+end;
+$$ language plpgsql;
+
+-- 🔄 Triggers to automatically update product ratings
+drop trigger if exists trigger_update_product_rating_insert on product_reviews;
+drop trigger if exists trigger_update_product_rating_update on product_reviews;
+drop trigger if exists trigger_update_product_rating_delete on product_reviews;
+
+create trigger trigger_update_product_rating_insert
+  after insert on product_reviews
+  for each row execute function update_product_rating();
+
+create trigger trigger_update_product_rating_update
+  after update on product_reviews
+  for each row execute function update_product_rating();
+
+create trigger trigger_update_product_rating_delete
+  after delete on product_reviews
+  for each row execute function update_product_rating();
+
+-- 🔍 Additional indexes for review system performance
+create index if not exists idx_product_reviews_product_rating on product_reviews(product_id, rating);
+create index if not exists idx_product_reviews_user_product on product_reviews(user_id, product_id);
+create index if not exists idx_product_reviews_created_at on product_reviews(created_at desc);
+
+-- 📊 Enhanced product view with review statistics
+create or replace view products_with_reviews as
+select
+  p.*,
+  coalesce(prs.average_rating, 0) as calculated_average_rating,
+  coalesce(prs.total_reviews, 0) as calculated_review_count
+from products p
+left join product_ratings_summary prs on p.id = prs.product_id;

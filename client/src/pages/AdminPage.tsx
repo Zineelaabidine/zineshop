@@ -850,27 +850,20 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your products and inventory</p>
-            </div>
-            <button
-              onClick={handleAddModalOpen}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Product
-            </button>
-          </div>
-        </div>
+    <div>
+      {/* Action Bar */}
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={handleAddModalOpen}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          Add Product
+        </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content */}
+      <div>
         {/* Success/Error Messages */}
         {deleteMessage && (
           <div className={`mb-6 p-4 rounded-lg ${
@@ -1153,7 +1146,6 @@ const AdminPage: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
 
       {/* Add Product Modal */}
       {showAddModal && (
@@ -1665,6 +1657,7 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -608,4 +608,343 @@ router.delete('/products/:id', asyncHandler(async (req: Request, res: Response<A
   }
 }));
 
+// ===============================================
+// ORDER MANAGEMENT ENDPOINTS
+// ===============================================
+
+// @route   GET /api/admin/orders
+// @desc    Get all orders with filtering and pagination
+// @access  Private (Admin only)
+router.get('/orders', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const {
+      search = '',
+      status = 'all',
+      page = 1,
+      limit = 50,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build WHERE clause for filtering
+    let whereConditions: string[] = [];
+    let queryParams: any[] = [];
+    let paramIndex = 1;
+
+    // Search filter (by customer email or order ID)
+    if (search && search.toString().trim() !== '') {
+      whereConditions.push(`(o.customer_email ILIKE $${paramIndex} OR o.id::text ILIKE $${paramIndex})`);
+      queryParams.push(`%${search.toString().trim()}%`);
+      paramIndex++;
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
+      whereConditions.push(`o.status = $${paramIndex}`);
+      queryParams.push(status);
+      paramIndex++;
+    }
+
+    // Build WHERE clause
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Validate sort parameters
+    const validSortColumns = ['created_at', 'total', 'status', 'customer_email'];
+    const validSortOrders = ['asc', 'desc'];
+    const safeSortBy = validSortColumns.includes(sortBy as string) ? sortBy : 'created_at';
+    const safeSortOrder = validSortOrders.includes(sortOrder as string) ? sortOrder : 'desc';
+
+    // Calculate pagination
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM orders o
+      ${whereClause}
+    `;
+    const countResult = await query(countQuery, queryParams);
+    const totalOrders = parseInt(countResult.rows[0].total);
+
+    // Get orders with related data
+    const ordersQuery = `
+      SELECT
+        o.id,
+        o.user_id,
+        o.customer_email,
+        o.status,
+        o.subtotal,
+        o.shipping_cost,
+        o.tax_amount,
+        o.cod_fee,
+        o.total,
+        o.payment_method,
+        o.order_notes,
+        o.created_at,
+        -- Shipping address
+        sa.full_name as shipping_name,
+        sa.phone as shipping_phone,
+        sa.address_line_1 as shipping_address_1,
+        sa.address_line_2 as shipping_address_2,
+        sa.city as shipping_city,
+        sa.state as shipping_state,
+        sa.postal_code as shipping_postal_code,
+        sa.country as shipping_country,
+        -- Delivery method
+        dm.name as delivery_method_name,
+        dm.estimated_days,
+        -- User info (if registered user)
+        u.full_name as user_full_name,
+        u.email as user_email
+      FROM orders o
+      LEFT JOIN addresses sa ON o.shipping_address_id = sa.id
+      LEFT JOIN delivery_methods dm ON o.delivery_method_id = dm.id
+      LEFT JOIN users u ON o.user_id = u.id
+      ${whereClause}
+      ORDER BY o.${safeSortBy} ${safeSortOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limitNum, offset);
+    const ordersResult = await query(ordersQuery, queryParams);
+
+    // Get order items for each order
+    const orderIds = ordersResult.rows.map(order => order.id);
+    let orderItemsMap: { [key: string]: any[] } = {};
+
+    if (orderIds.length > 0) {
+      const itemsQuery = `
+        SELECT
+          oi.order_id,
+          oi.quantity,
+          oi.unit_price,
+          p.id as product_id,
+          p.name as product_name,
+          p.image_url
+        FROM order_items oi
+        LEFT JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = ANY($1)
+        ORDER BY oi.order_id, p.name
+      `;
+      const itemsResult = await query(itemsQuery, [orderIds]);
+
+      // Group items by order_id
+      itemsResult.rows.forEach(item => {
+        if (!orderItemsMap[item.order_id]) {
+          orderItemsMap[item.order_id] = [];
+        }
+        orderItemsMap[item.order_id].push({
+          productId: item.product_id,
+          productName: item.product_name,
+          quantity: item.quantity,
+          unitPrice: parseFloat(item.unit_price),
+          imageUrl: item.image_url
+        });
+      });
+    }
+
+    // Format orders data
+    const orders = ordersResult.rows.map(order => ({
+      id: order.id,
+      orderNumber: order.id.substring(0, 8).toUpperCase(),
+      userId: order.user_id,
+      customerEmail: order.customer_email,
+      customerName: order.user_full_name || order.shipping_name,
+      status: order.status,
+      subtotal: parseFloat(order.subtotal || '0'),
+      shippingCost: parseFloat(order.shipping_cost || '0'),
+      taxAmount: parseFloat(order.tax_amount || '0'),
+      codFee: parseFloat(order.cod_fee || '0'),
+      total: parseFloat(order.total || '0'),
+      paymentMethod: order.payment_method,
+      orderNotes: order.order_notes,
+      createdAt: order.created_at,
+      items: orderItemsMap[order.id] || [],
+      shippingAddress: {
+        fullName: order.shipping_name,
+        phone: order.shipping_phone,
+        addressLine1: order.shipping_address_1,
+        addressLine2: order.shipping_address_2,
+        city: order.shipping_city,
+        state: order.shipping_state,
+        postalCode: order.shipping_postal_code,
+        country: order.shipping_country
+      },
+      deliveryMethod: {
+        name: order.delivery_method_name,
+        estimatedDays: order.estimated_days
+      }
+    }));
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalOrders / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    res.json({
+      success: true,
+      message: 'Orders retrieved successfully',
+      data: {
+        orders,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalOrders,
+          hasNextPage,
+          hasPrevPage,
+          limit: limitNum
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching orders'
+    });
+  }
+}));
+
+// @route   PUT /api/admin/orders/:id/status
+// @desc    Update order status
+// @access  Private (Admin only)
+router.put('/orders/:id/status', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const orderId = req.params.id;
+    const { status } = req.body;
+
+    // Validate order ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(orderId)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
+      });
+      return;
+    }
+
+    // Validate status
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!status || !validStatuses.includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid status. Valid statuses are: ' + validStatuses.join(', ')
+      });
+      return;
+    }
+
+    // Check if order exists
+    const existingOrderResult = await query(
+      'SELECT id, status, customer_email FROM orders WHERE id = $1',
+      [orderId]
+    );
+
+    if (existingOrderResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+      return;
+    }
+
+    const existingOrder = existingOrderResult.rows[0];
+
+    // Check if status is actually changing
+    if (existingOrder.status === status) {
+      res.status(400).json({
+        success: false,
+        message: `Order is already in ${status} status`
+      });
+      return;
+    }
+
+    // Update order status
+    const updateResult = await query(
+      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id, status, customer_email, total, created_at',
+      [status, orderId]
+    );
+
+    if (updateResult.rows.length === 0) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update order status'
+      });
+      return;
+    }
+
+    const updatedOrder = updateResult.rows[0];
+
+    res.json({
+      success: true,
+      message: `Order status updated to ${status} successfully`,
+      data: {
+        orderId: updatedOrder.id,
+        orderNumber: updatedOrder.id.substring(0, 8).toUpperCase(),
+        status: updatedOrder.status,
+        customerEmail: updatedOrder.customer_email,
+        total: parseFloat(updatedOrder.total),
+        createdAt: updatedOrder.created_at,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating order status'
+    });
+  }
+}));
+
+// @route   GET /api/admin/orders/stats
+// @desc    Get order statistics for admin dashboard
+// @access  Private (Admin only)
+router.get('/orders/stats', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    // Get order statistics
+    const statsResult = await query(`
+      SELECT
+        COUNT(*) as total_orders,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
+        COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
+        COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_orders,
+        COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+        COALESCE(SUM(total), 0) as total_revenue,
+        COALESCE(AVG(total), 0) as average_order_value,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as orders_last_30_days
+      FROM orders
+    `);
+
+    const stats = statsResult.rows[0];
+
+    res.json({
+      success: true,
+      message: 'Order statistics retrieved successfully',
+      data: {
+        totalOrders: parseInt(stats.total_orders),
+        pendingOrders: parseInt(stats.pending_orders),
+        processingOrders: parseInt(stats.processing_orders),
+        shippedOrders: parseInt(stats.shipped_orders),
+        deliveredOrders: parseInt(stats.delivered_orders),
+        cancelledOrders: parseInt(stats.cancelled_orders),
+        totalRevenue: parseFloat(stats.total_revenue),
+        averageOrderValue: parseFloat(stats.average_order_value),
+        ordersLast30Days: parseInt(stats.orders_last_30_days)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching order statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching order statistics'
+    });
+  }
+}));
+
 export default router;

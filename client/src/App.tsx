@@ -15,7 +15,7 @@ import ScrollToTopButton from './components/ScrollToTopButton';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AboutPage from './pages/AboutPage';
-import AdminPage from './pages/AdminPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ContactPage from './pages/ContactPage';
 import SignInPage from './pages/SignInPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -62,7 +62,7 @@ function App() {
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
             <Route path="/admin" element={
               <AdminRoute>
-                <AdminPage />
+                <AdminDashboard />
               </AdminRoute>
             } />
             <Route path="*" element={<NotFoundPage />} />
