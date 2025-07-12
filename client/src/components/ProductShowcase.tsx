@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, ShoppingCart, Eye, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProductRating from './ProductRating';
+import { api } from '../config/api';
 
 interface Product {
   id: string;
@@ -28,7 +29,7 @@ const ProductShowcase: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch('/api/products/featured?limit=6');
+        const response = await api.get('api/products/featured?limit=6');
         const data = await response.json();
 
         if (data.success && data.data) {

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { 
-  CheckCircle, 
-  Package, 
-  Truck, 
-  Mail, 
-  Phone, 
+import {
+  CheckCircle,
+  Package,
+  Truck,
+  Mail,
+  Phone,
   MapPin,
   Calendar,
   CreditCard,
@@ -13,6 +13,7 @@ import {
   Download
 } from 'lucide-react';
 import { formatPrice } from '../utils/cartUtils';
+import { api } from '../config/api';
 
 interface OrderData {
   orderId: string;
@@ -73,7 +74,7 @@ const OrderConfirmationPage: React.FC = () => {
 
   const fetchOrderData = async (id: string) => {
     try {
-      const response = await fetch(`/api/orders/${id}`);
+      const response = await api.get(`api/orders/${id}`);
       const result = await response.json();
 
       if (result.success) {

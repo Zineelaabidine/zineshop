@@ -15,6 +15,7 @@ import {
   getStatusText,
   getStockStatusClasses
 } from '../types/admin';
+import { api } from '../config/api';
 
 const AdminPage: React.FC = () => {
   const { user } = useAuth();
@@ -108,14 +109,7 @@ const AdminPage: React.FC = () => {
     try {
       setState(prev => ({ ...prev, isLoadingProducts: true, error: null }));
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/products', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const response = await api.get('api/admin/products');
       const data = await response.json();
 
       if (data.success) {
@@ -144,14 +138,7 @@ const AdminPage: React.FC = () => {
     try {
       setState(prev => ({ ...prev, isLoadingCategories: true }));
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/categories', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const response = await api.get('api/admin/categories');
       const data = await response.json();
 
       if (data.success) {
@@ -180,14 +167,7 @@ const AdminPage: React.FC = () => {
     try {
       setState(prev => ({ ...prev, isLoadingStats: true }));
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const response = await api.get('api/admin/stats');
       const data = await response.json();
 
       if (data.success) {
@@ -292,15 +272,7 @@ const AdminPage: React.FC = () => {
       setIsCreating(true);
       setCreateMessage(null);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/products', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await api.post('api/admin/products', formData);
 
       const data: AdminCreateProductResponse = await response.json();
 
@@ -353,15 +325,7 @@ const AdminPage: React.FC = () => {
       setIsUpdating(true);
       setUpdateMessage(null);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/products/${selectedProduct.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editFormData)
-      });
+      const response = await api.put(`api/admin/products/${selectedProduct.id}`, editFormData);
 
       const data: AdminUpdateProductResponse = await response.json();
 
@@ -445,14 +409,7 @@ const AdminPage: React.FC = () => {
       const formData = new FormData();
       formData.append('image', file);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/upload/product-image', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const response = await api.post('api/upload/product-image', formData);
 
       const data = await response.json();
 
@@ -656,14 +613,7 @@ const AdminPage: React.FC = () => {
       setIsDeleting(true);
       setDeleteMessage(null);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.delete(`api/admin/products/${productId}`);
 
       const data: AdminDeleteProductResponse = await response.json();
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Star, ShoppingCart, Eye, Filter, Grid, List, ArrowLeft, Package, Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ProductRating from '../components/ProductRating';
+import { api } from '../config/api';
 
 interface Product {
   id: string;
@@ -102,7 +103,7 @@ const ProductsPage: React.FC = () => {
       params.append('page', page.toString());
       params.append('limit', productsPerPage.toString());
 
-      const response = await fetch(`/api/products?${params.toString()}`);
+      const response = await api.get(`api/products?${params.toString()}`);
       const data: ProductsResponse = await response.json();
 
       if (data.success && data.data) {
@@ -128,7 +129,7 @@ const ProductsPage: React.FC = () => {
     try {
       setIsLoadingCategories(true);
 
-      const response = await fetch('/api/products/categories');
+      const response = await api.get('api/products/categories');
       const data: CategoriesResponse = await response.json();
 
       if (data.success && data.data) {

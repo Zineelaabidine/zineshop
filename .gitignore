@@ -14,7 +14,17 @@
 .env.staging
 *.env
 server/.env
+server/.env.local
+server/.env.development
+server/.env.test
+server/.env.production
+server/.env.staging
 client/.env
+client/.env.local
+client/.env.development
+client/.env.test
+client/.env.production
+client/.env.staging
 
 # API Keys and Secrets
 config/secrets.json
@@ -23,6 +33,21 @@ secrets/
 *.pem
 *.p12
 *.pfx
+
+# Deployment platform directories (created during deployment)
+.vercel/
+.render/
+
+# Supabase local development
+supabase/.env
+supabase/.env.local
+.supabase/
+
+# Database dumps and backups
+*.sql.gz
+*.dump
+database_backup*
+db_backup*
 
 # ===================================
 # Dependencies
@@ -197,5 +222,55 @@ public
 # Temporary folders
 .tmp
 .temp
+
+# ===================================
+# DEPLOYMENT SECURITY ADDITIONS
+# ===================================
+# Additional sensitive files that should NEVER be committed
+*.env.backup
+*.env.orig
+.env.example.filled
+config.local.json
+local-config.json
+
+# SSL/TLS certificates
+*.crt
+*.cert
+*.ca-bundle
+ssl/
+
+# Authentication tokens
+.auth_token
+.access_token
+auth.json
+token.json
+
+# Local development overrides
+local.json
+local.config.js
+local.config.ts
+
+# IDE-specific environment files
+.vscode/settings.json.local
+.idea/workspace.xml.local
+
+# Platform-specific deployment files with secrets
+now.json
+.now/
+.netlify/
+.firebase/
+firebase-debug.log
+.firebaserc.local
+
+# Package manager authentication
+.npmrc.local
+.yarnrc.local
+.pnpmrc.local
+
+# Local uploads and user-generated content
+uploads/
+user-uploads/
+public/uploads/
+static/uploads/
 
 

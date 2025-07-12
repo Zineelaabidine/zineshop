@@ -12,6 +12,7 @@ import {
   ReviewListState,
   REVIEW_CONSTANTS
 } from '../../types/reviews';
+import { api } from '../../config/api';
 
 interface ProductReviewSystemProps {
   productId: string;
@@ -64,7 +65,7 @@ const ProductReviewSystem: React.FC<ProductReviewSystemProps> = ({
         sortOrder: 'desc'
       });
 
-      const response = await fetch(`http://localhost:5000/api/reviews/product/${productId}?${params}`);
+      const response = await api.get(`api/reviews/product/${productId}?${params}`);
       const data: ReviewsResponse = await response.json();
 
       if (data.success && data.data) {
@@ -112,12 +113,7 @@ const ProductReviewSystem: React.FC<ProductReviewSystemProps> = ({
     try {
       setEligibilityState(prev => ({ ...prev, isLoading: true }));
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/reviews/eligibility/${productId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`api/reviews/eligibility/${productId}`);
 
       const data: PurchaseEligibilityResponse = await response.json();
 

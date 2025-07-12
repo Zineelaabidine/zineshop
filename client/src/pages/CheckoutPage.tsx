@@ -16,6 +16,7 @@ import {
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { formatPrice } from '../utils/cartUtils';
+import { api } from '../config/api';
 
 // Types for checkout
 interface ShippingAddress {
@@ -93,7 +94,7 @@ const CheckoutPage: React.FC = () => {
 
   const fetchDeliveryMethods = async () => {
     try {
-      const response = await fetch('/api/delivery-methods');
+      const response = await api.get('api/delivery-methods');
       const data = await response.json();
       
       if (data.success) {
@@ -207,13 +208,10 @@ const CheckoutPage: React.FC = () => {
       };
 
       // Submit order
-      const response = await fetch('/api/orders', {
-        method: 'POST',
+      const response = await api.post('api/orders', orderData, {
         headers: {
-          'Content-Type': 'application/json',
           ...(isAuthenticated && { 'Authorization': `Bearer ${localStorage.getItem('token')}` })
-        },
-        body: JSON.stringify(orderData)
+        }
       });
 
       const result = await response.json();

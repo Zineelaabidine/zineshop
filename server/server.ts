@@ -83,11 +83,26 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// CORS configuration - optimized for unified frontend + backend serving
+// CORS configuration - optimized for separate frontend deployment
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [process.env.CLIENT_URL || 'http://localhost:5173'];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Body parsing middleware
@@ -120,13 +135,8 @@ app.use('/api', deliveryRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-// Handle React Router (return `index.html` for all non-API routes)
-app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
+// API-only server - no static file serving
+// All routes are handled by the API routes above
 
 // 404 handler
 app.use(notFound);
@@ -188,15 +198,22 @@ const startServer = async (): Promise<void> => {
 
     // Start HTTP server
     const PORT: number = parseInt(process.env.PORT || '5000', 10);
+    const HOST: string = process.env.HOST || '0.0.0.0'; // Allow external connections in production
 
-    const server: Server = app.listen(PORT, () => {
+    const server: Server = app.listen(PORT, HOST, () => {
+      const isProduction = process.env.NODE_ENV === 'production';
+      const baseUrl = isProduction
+        ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'your-app'}.onrender.com`
+        : `http://localhost:${PORT}`;
+
       console.log(`
 🚀 ZineShop API Server Started
 📍 Environment: ${process.env.NODE_ENV || 'development'}
-🌐 Server running on port ${PORT}
-🔗 API URL: http://localhost:${PORT}
-📊 Health check: http://localhost:${PORT}/health
-🔐 Auth endpoints: http://localhost:${PORT}/api/auth
+🌐 Server running on ${HOST}:${PORT}
+🔗 API URL: ${baseUrl}
+📊 Health check: ${baseUrl}/health
+🔐 Auth endpoints: ${baseUrl}/api/auth
+🌍 CORS allowed origins: ${allowedOrigins.join(', ')}
       `);
     });
 

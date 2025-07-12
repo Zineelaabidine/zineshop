@@ -10,6 +10,7 @@ import {
   validateReview,
   REVIEW_CONSTANTS
 } from '../../types/reviews';
+import { api } from '../../config/api';
 
 const ReviewForm: React.FC<ReviewFormProps> = ({
   productId,
@@ -75,15 +76,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         review: formState.comment.trim() || undefined
       };
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(reviewData)
-      });
+      const response = await api.post('api/reviews', reviewData);
 
       const data: CreateReviewResponse = await response.json();
 

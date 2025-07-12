@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Package, 
-  DollarSign, 
-  ShoppingCart, 
-  TrendingUp, 
-  Loader2, 
+import {
+  Package,
+  DollarSign,
+  ShoppingCart,
+  TrendingUp,
+  Loader2,
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
@@ -18,6 +18,7 @@ import {
 } from '../types/admin';
 import OrderCard from '../components/admin/OrderCard';
 import OrderFilters from '../components/admin/OrderFilters';
+import { api } from '../config/api';
 
 const AdminOrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -51,14 +52,7 @@ const AdminOrdersPage: React.FC = () => {
       params.append('sortBy', state.filters.sortBy);
       params.append('sortOrder', state.filters.sortOrder);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/orders?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const response = await api.get(`api/admin/orders?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -90,14 +84,7 @@ const AdminOrdersPage: React.FC = () => {
     try {
       setState(prev => ({ ...prev, isLoadingStats: true }));
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/orders/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const response = await api.get('api/admin/orders/stats');
       const data = await response.json();
 
       if (data.success) {
@@ -118,16 +105,7 @@ const AdminOrdersPage: React.FC = () => {
   // Update order status
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
+      const response = await api.put(`api/admin/orders/${orderId}/status`, { status: newStatus });
       const data = await response.json();
 
       if (data.success) {

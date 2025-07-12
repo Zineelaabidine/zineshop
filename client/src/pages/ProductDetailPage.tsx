@@ -7,6 +7,7 @@ import ProductVariants from '../components/ProductVariants';
 import AddToCartButton from '../components/AddToCartButton';
 import ProductRating from '../components/ProductRating';
 import ProductReviewSystem from '../components/reviews/ProductReviewSystem';
+import { api } from '../config/api';
 
 // Product interface matching your database schema
 interface ProductDetail {
@@ -58,7 +59,7 @@ const ProductDetailPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/products/${productId}`);
+      const response = await api.get(`api/products/${productId}`);
       const data: ProductDetailResponse = await response.json();
 
       if (data.success && data.data) {

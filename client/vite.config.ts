@@ -13,4 +13,16 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  server: {
+    port: 5173,
+    host: true,
+  },
+  preview: {
+    port: 4173,
+    host: true,
+  },
+  define: {
+    // Make environment variables available to the client
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || 'http://localhost:5000'),
+  },
 });

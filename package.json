@@ -4,16 +4,21 @@
   "description": "ZineShop - Full-stack e-commerce application with React frontend and Express.js backend",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run build:production && npm run server:dev",
+    "dev": "npm run dev:separated",
+    "dev:separated": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
+    "dev:legacy": "npm run build:production && npm run server:dev",
     "start": "npm run build:production && npm run server:start",
     "build": "npm run client:build && npm run server:build",
-    "build:production": "npm run client:build",
+    "build:production": "npm run client:build:production && npm run server:build:production",
     "client:dev": "cd client && npm run dev",
     "client:build": "cd client && npm run build",
+    "client:build:production": "cd client && npm run build:production",
     "client:preview": "cd client && npm run preview",
     "server:dev": "cd server && npm run dev",
     "server:build": "cd server && npm run build",
+    "server:build:production": "cd server && npm run build:production",
     "server:start": "cd server && npm start",
+    "server:start:production": "cd server && npm run start:production",
     "install:all": "npm install && npm run install:client && npm run install:server",
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install",
@@ -51,5 +56,8 @@
   "workspaces": [
     "client",
     "server"
-  ]
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
 }
