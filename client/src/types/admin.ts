@@ -219,12 +219,11 @@ export interface AdminOrder {
   deliveryMethod: DeliveryMethod;
 }
 
-// Order status enum
+// Order status enum (matches database schema)
 export enum OrderStatus {
   PENDING = 'pending',
-  PROCESSING = 'processing',
+  PAID = 'paid',
   SHIPPED = 'shipped',
-  DELIVERED = 'delivered',
   CANCELLED = 'cancelled'
 }
 
@@ -297,12 +296,10 @@ export const getOrderStatusText = (status: OrderStatus): string => {
   switch (status) {
     case OrderStatus.PENDING:
       return 'Pending';
-    case OrderStatus.PROCESSING:
-      return 'Processing';
+    case OrderStatus.PAID:
+      return 'Paid';
     case OrderStatus.SHIPPED:
       return 'Shipped';
-    case OrderStatus.DELIVERED:
-      return 'Delivered';
     case OrderStatus.CANCELLED:
       return 'Cancelled';
     default:
@@ -314,11 +311,9 @@ export const getOrderStatusBadgeClasses = (status: OrderStatus): string => {
   switch (status) {
     case OrderStatus.PENDING:
       return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case OrderStatus.PROCESSING:
+    case OrderStatus.PAID:
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case OrderStatus.SHIPPED:
-      return 'bg-purple-100 text-purple-800 border-purple-200';
-    case OrderStatus.DELIVERED:
       return 'bg-green-100 text-green-800 border-green-200';
     case OrderStatus.CANCELLED:
       return 'bg-red-100 text-red-800 border-red-200';
@@ -330,23 +325,20 @@ export const getOrderStatusBadgeClasses = (status: OrderStatus): string => {
 export const getNextOrderStatus = (currentStatus: OrderStatus): OrderStatus | null => {
   switch (currentStatus) {
     case OrderStatus.PENDING:
-      return OrderStatus.PROCESSING;
-    case OrderStatus.PROCESSING:
+      return OrderStatus.PAID;
+    case OrderStatus.PAID:
       return OrderStatus.SHIPPED;
-    case OrderStatus.SHIPPED:
-      return OrderStatus.DELIVERED;
     default:
-      return null;
+      return null; // shipped and cancelled are final states
   }
 };
 
 export const canUpdateOrderStatus = (currentStatus: OrderStatus, newStatus: OrderStatus): boolean => {
-  // Define valid status transitions
+  // Define valid status transitions based on your database schema
   const validTransitions: { [key in OrderStatus]: OrderStatus[] } = {
-    [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
-    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
-    [OrderStatus.DELIVERED]: [], // Final state
+    [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+    [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPED]: [], // Final state - product delivered
     [OrderStatus.CANCELLED]: [] // Final state
   };
 

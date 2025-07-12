@@ -827,7 +827,7 @@ router.put('/orders/:id/status', asyncHandler(async (req: Request, res: Response
     }
 
     // Validate status
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'paid', 'shipped', 'cancelled'];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({
         success: false,
@@ -863,7 +863,7 @@ router.put('/orders/:id/status', asyncHandler(async (req: Request, res: Response
 
     // Update order status
     const updateResult = await query(
-      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id, status, customer_email, total, created_at',
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, status, total, created_at',
       [status, orderId]
     );
 
@@ -884,7 +884,6 @@ router.put('/orders/:id/status', asyncHandler(async (req: Request, res: Response
         orderId: updatedOrder.id,
         orderNumber: updatedOrder.id.substring(0, 8).toUpperCase(),
         status: updatedOrder.status,
-        customerEmail: updatedOrder.customer_email,
         total: parseFloat(updatedOrder.total),
         createdAt: updatedOrder.created_at,
         updatedAt: new Date().toISOString()
@@ -943,6 +942,232 @@ router.get('/orders/stats', asyncHandler(async (req: Request, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching order statistics'
+    });
+  }
+}));
+
+// ===============================================
+// REVIEW MANAGEMENT ENDPOINTS
+// ===============================================
+
+// @route   GET /api/admin/reviews
+// @desc    Get all reviews with filtering and pagination
+// @access  Private (Admin only)
+router.get('/reviews', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const {
+      search = '',
+      rating = 'all',
+      page = 1,
+      limit = 20,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build WHERE clause for filtering
+    let whereConditions: string[] = [];
+    let queryParams: any[] = [];
+    let paramIndex = 1;
+
+    // Search filter (by product name, user name, or review content)
+    if (search && search.toString().trim() !== '') {
+      whereConditions.push(`(p.name ILIKE $${paramIndex} OR u.full_name ILIKE $${paramIndex} OR pr.review ILIKE $${paramIndex})`);
+      queryParams.push(`%${search.toString().trim()}%`);
+      paramIndex++;
+    }
+
+    // Rating filter
+    if (rating && rating !== 'all') {
+      whereConditions.push(`pr.rating = $${paramIndex}`);
+      queryParams.push(parseInt(rating as string));
+      paramIndex++;
+    }
+
+    // Build WHERE clause
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Validate sort parameters
+    const validSortColumns = ['created_at', 'rating', 'product_name', 'user_name'];
+    const validSortOrders = ['asc', 'desc'];
+    const safeSortBy = validSortColumns.includes(sortBy as string) ? sortBy : 'created_at';
+    const safeSortOrder = validSortOrders.includes(sortOrder as string) ? sortOrder : 'desc';
+
+    // Calculate pagination
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM product_reviews pr
+      LEFT JOIN products p ON pr.product_id = p.id
+      LEFT JOIN users u ON pr.user_id = u.id
+      ${whereClause}
+    `;
+    const countResult = await query(countQuery, queryParams);
+    const totalReviews = parseInt(countResult.rows[0].total);
+
+    // Get reviews with related data
+    const reviewsQuery = `
+      SELECT
+        pr.id,
+        pr.user_id,
+        pr.product_id,
+        pr.rating,
+        pr.review,
+        pr.created_at,
+        pr.updated_at,
+        u.full_name as user_name,
+        u.email as user_email,
+        p.name as product_name,
+        p.image_url as product_image
+      FROM product_reviews pr
+      LEFT JOIN products p ON pr.product_id = p.id
+      LEFT JOIN users u ON pr.user_id = u.id
+      ${whereClause}
+      ORDER BY pr.${safeSortBy === 'product_name' ? 'p.name' : safeSortBy === 'user_name' ? 'u.full_name' : 'pr.' + safeSortBy} ${safeSortOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limitNum, offset);
+    const reviewsResult = await query(reviewsQuery, queryParams);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalReviews / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    res.json({
+      success: true,
+      message: 'Reviews retrieved successfully',
+      data: {
+        reviews: reviewsResult.rows,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalReviews,
+          hasNextPage,
+          hasPrevPage,
+          limit: limitNum
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching reviews'
+    });
+  }
+}));
+
+// @route   DELETE /api/admin/reviews/:id
+// @desc    Delete a review
+// @access  Private (Admin only)
+router.delete('/reviews/:id', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reviewId = req.params.id;
+
+    // Validate review ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(reviewId)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid review ID format'
+      });
+      return;
+    }
+
+    // Check if review exists
+    const existingReviewResult = await query(
+      'SELECT id, product_id FROM product_reviews WHERE id = $1',
+      [reviewId]
+    );
+
+    if (existingReviewResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Review not found'
+      });
+      return;
+    }
+
+    // Delete the review
+    const deleteResult = await query(
+      'DELETE FROM product_reviews WHERE id = $1 RETURNING id',
+      [reviewId]
+    );
+
+    if (deleteResult.rows.length === 0) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete review'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Review deleted successfully',
+      data: {
+        reviewId: deleteResult.rows[0].id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting review:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting review'
+    });
+  }
+}));
+
+// @route   GET /api/admin/reviews/stats
+// @desc    Get review statistics for admin dashboard
+// @access  Private (Admin only)
+router.get('/reviews/stats', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    // Get review statistics
+    const statsResult = await query(`
+      SELECT
+        COUNT(*) as total_reviews,
+        COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star_reviews,
+        COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star_reviews,
+        COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star_reviews,
+        COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star_reviews,
+        COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star_reviews,
+        COALESCE(AVG(rating), 0) as average_rating,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as reviews_last_30_days,
+        COUNT(CASE WHEN review IS NOT NULL AND review != '' THEN 1 END) as reviews_with_comments
+      FROM product_reviews
+    `);
+
+    const stats = statsResult.rows[0];
+
+    res.json({
+      success: true,
+      message: 'Review statistics retrieved successfully',
+      data: {
+        totalReviews: parseInt(stats.total_reviews),
+        oneStarReviews: parseInt(stats.one_star_reviews),
+        twoStarReviews: parseInt(stats.two_star_reviews),
+        threeStarReviews: parseInt(stats.three_star_reviews),
+        fourStarReviews: parseInt(stats.four_star_reviews),
+        fiveStarReviews: parseInt(stats.five_star_reviews),
+        averageRating: parseFloat(stats.average_rating),
+        reviewsLast30Days: parseInt(stats.reviews_last_30_days),
+        reviewsWithComments: parseInt(stats.reviews_with_comments)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching review statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching review statistics'
     });
   }
 }));

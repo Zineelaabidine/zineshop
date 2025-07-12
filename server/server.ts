@@ -29,6 +29,7 @@ import uploadRoutes from './routes/upload';
 import productsRoutes from './routes/products';
 import deliveryRoutes from './routes/delivery';
 import ordersRoutes from './routes/orders';
+import reviewsRoutes from './routes/reviews';
 
 // Create Express app
 const app: Application = express();
@@ -117,6 +118,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api', deliveryRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../client/dist')));

@@ -6,7 +6,7 @@ import ProductInfo from '../components/ProductInfo';
 import ProductVariants from '../components/ProductVariants';
 import AddToCartButton from '../components/AddToCartButton';
 import ProductRating from '../components/ProductRating';
-import ProductReviews from '../components/ProductReviews';
+import ProductReviewSystem from '../components/reviews/ProductReviewSystem';
 
 // Product interface matching your database schema
 interface ProductDetail {
@@ -256,8 +256,9 @@ const ProductDetailPage: React.FC = () => {
 
         {/* Product Reviews Section */}
         <div className="mt-16">
-          <ProductReviews 
+          <ProductReviewSystem
             productId={product.id}
+            productName={product.name}
             averageRating={product.average_rating}
             reviewCount={product.review_count}
           />
