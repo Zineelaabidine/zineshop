@@ -44,8 +44,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Dark mode body styling */
+/* Body styling - now handled by theme classes */
 body {
-  background-color: #111827;
-  color: #f9fafb;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

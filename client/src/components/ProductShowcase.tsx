@@ -50,7 +50,7 @@ const ProductShowcase: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <section className="py-20 bg-gray-800">
+      <section className="py-20 bg-gray-100 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">
@@ -73,7 +73,7 @@ const ProductShowcase: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <section className="py-20 bg-gray-800">
+      <section className="py-20 bg-gray-100 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">
@@ -102,7 +102,7 @@ const ProductShowcase: React.FC = () => {
   // No products state
   if (products.length === 0) {
     return (
-      <section className="py-20 bg-gray-800">
+      <section className="py-20 bg-gray-100 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">
@@ -130,7 +130,7 @@ const ProductShowcase: React.FC = () => {
   }
 
   return (
-    <section className="py-20 bg-gray-800">
+    <section className="py-20 bg-gray-100 dark:bg-gray-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">
@@ -148,7 +148,7 @@ const ProductShowcase: React.FC = () => {
             <Link
               key={product.id}
               to={`/product/${product.id}`}
-              className="group relative bg-gray-900 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-700 block"
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-blue-500/20 dark:hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-200 dark:border-gray-700 block"
             >
               {/* Badge for new products (created within last 7 days) */}
               {new Date(product.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
@@ -192,25 +192,25 @@ const ProductShowcase: React.FC = () => {
                 
                 {/* Quick Actions */}
                 <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <button className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200">
-                    <Eye className="w-4 h-4 text-gray-300" />
+                  <button className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 shadow-md">
+                    <Eye className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                   </button>
-                  <button className="p-2 bg-gray-800/90 rounded-full hover:bg-gray-700 transition-colors duration-200">
-                    <ShoppingCart className="w-4 h-4 text-gray-300" />
+                  <button className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 shadow-md">
+                    <ShoppingCart className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                   </button>
                 </div>
               </div>
 
               {/* Product Info */}
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-100 mb-2 group-hover:text-blue-400 transition-colors duration-200">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-200">
                   {product.name}
                 </h3>
 
                 {/* Category */}
                 {product.category_name && (
                   <div className="mb-2">
-                    <span className="text-sm text-blue-400 bg-blue-400/10 px-2 py-1 rounded-full">
+                    <span className="text-sm text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-400/10 px-2 py-1 rounded-full">
                       {product.category_name}
                     </span>
                   </div>
@@ -227,7 +227,7 @@ const ProductShowcase: React.FC = () => {
 
                 {/* Description */}
                 {product.description && (
-                  <p className="text-sm text-gray-400 mb-3 overflow-hidden" style={{
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 overflow-hidden" style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical'
@@ -242,7 +242,7 @@ const ProductShowcase: React.FC = () => {
                     product.stock > 10 ? 'bg-green-400' :
                     product.stock > 0 ? 'bg-yellow-400' : 'bg-red-400'
                   }`}></div>
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {product.stock > 10 ? 'In Stock' :
                      product.stock > 0 ? `Only ${product.stock} left` : 'Out of Stock'}
                   </span>
@@ -251,7 +251,7 @@ const ProductShowcase: React.FC = () => {
                 {/* Price */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-bold text-gray-100">${product.price.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">${product.price.toFixed(2)}</span>
                   </div>
                   <button
                     className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:-translate-y-0.5 ${

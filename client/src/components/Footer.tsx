@@ -6,7 +6,7 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-950 text-white">
+    <footer className="bg-gray-200 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Section */}
@@ -19,7 +19,7 @@ const Footer: React.FC = () => {
                 ZineShop
               </span>
             </div>
-            <p className="text-gray-400 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               Pioneering the future of e-commerce with cutting-edge technology and innovative products that redefine tomorrow.
             </p>
             <div className="flex space-x-4">
@@ -32,9 +32,9 @@ const Footer: React.FC = () => {
                 <a
                   key={index}
                   href={social.href}
-                  className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 transition-all duration-300 group"
+                  className="w-10 h-10 bg-gray-300 dark:bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 transition-all duration-300 group"
                 >
-                  <social.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                  <social.icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-white" />
                 </a>
               ))}
             </div>
@@ -42,12 +42,12 @@ const Footer: React.FC = () => {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-white">Quick Links</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   to="/about"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   About Us
                 </Link>
@@ -55,7 +55,7 @@ const Footer: React.FC = () => {
               <li>
                 <Link
                   to="/products"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   Products
                 </Link>
@@ -63,7 +63,7 @@ const Footer: React.FC = () => {
               <li>
                 <a
                   href="#"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   Services
                 </a>
@@ -71,7 +71,7 @@ const Footer: React.FC = () => {
               <li>
                 <Link
                   to="/contact"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   Contact
                 </Link>
@@ -79,7 +79,7 @@ const Footer: React.FC = () => {
               <li>
                 <a
                   href="#"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   Blog
                 </a>
@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
               <li>
                 <a
                   href="#"
-                  className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                 >
                   Careers
                 </a>
@@ -103,7 +103,7 @@ const Footer: React.FC = () => {
                 <li key={link}>
                   <a
                     href="#"
-                    className="text-gray-400 hover:text-blue-400 transition-colors duration-200"
+                    className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200"
                   >
                     {link}
                   </a>
@@ -145,7 +145,7 @@ const Footer: React.FC = () => {
               <a
                 key={link}
                 href="#"
-                className="text-gray-400 hover:text-blue-400 text-sm transition-colors duration-200"
+                className="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 text-sm transition-colors duration-200"
               >
                 {link}
               </a>

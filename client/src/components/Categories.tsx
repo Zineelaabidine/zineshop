@@ -56,7 +56,7 @@ const Categories: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
+    <section className="py-20 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">
@@ -73,7 +73,7 @@ const Categories: React.FC = () => {
           {categories.map((category) => (
             <div
               key={category.id}
-              className="group relative bg-gray-800 rounded-2xl p-6 text-center hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-gray-700"
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl p-6 text-center hover:shadow-xl hover:shadow-blue-500/20 dark:hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg"
             >
               {/* Icon Container */}
               <div className={`mx-auto w-16 h-16 bg-gradient-to-r ${category.gradient} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
@@ -83,12 +83,12 @@ const Categories: React.FC = () => {
               </div>
 
               {/* Category Name */}
-              <h3 className="text-lg font-semibold text-gray-100 mb-2 group-hover:text-blue-400 transition-colors duration-200">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-200">
                 {category.name}
               </h3>
 
               {/* Product Count */}
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {category.count} products
               </p>
 
@@ -100,8 +100,8 @@ const Categories: React.FC = () => {
 
         {/* Additional CTA */}
         <div className="text-center mt-12">
-          <p className="text-gray-400 mb-4">Can't find what you're looking for?</p>
-          <button className="text-blue-400 font-semibold hover:text-blue-300 transition-colors duration-200">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Can't find what you're looking for?</p>
+          <button className="text-blue-500 dark:text-blue-400 font-semibold hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-200 hover:underline">
             Browse All Categories →
           </button>
         </div>

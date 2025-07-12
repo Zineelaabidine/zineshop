@@ -20,9 +20,8 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({
   const statusOptions: Array<{ value: 'all' | OrderStatus; label: string }> = [
     { value: 'all', label: 'All Orders' },
     { value: OrderStatus.PENDING, label: getOrderStatusText(OrderStatus.PENDING) },
-    { value: OrderStatus.PROCESSING, label: getOrderStatusText(OrderStatus.PROCESSING) },
+    { value: OrderStatus.PAID, label: getOrderStatusText(OrderStatus.PAID) },
     { value: OrderStatus.SHIPPED, label: getOrderStatusText(OrderStatus.SHIPPED) },
-    { value: OrderStatus.DELIVERED, label: getOrderStatusText(OrderStatus.DELIVERED) },
     { value: OrderStatus.CANCELLED, label: getOrderStatusText(OrderStatus.CANCELLED) }
   ];
 

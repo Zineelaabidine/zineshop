@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ProductShowcase from './components/ProductShowcase';
@@ -38,10 +39,11 @@ function App() {
   );
 
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-        <div className="min-h-screen bg-gray-900">
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+          <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
           <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
 
           {/* Scroll to top on route changes */}
@@ -72,10 +74,11 @@ function App() {
           <ScrollToTopButton />
 
           <Footer />
-        </div>
-        </Router>
-      </CartProvider>
-    </AuthProvider>
+          </div>
+          </Router>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
